@@ -44,8 +44,8 @@ src/
   middlewares/   auth (JWT), empresa (X-Empresa-Id + permisos), permiso, validar (zod), errores
   rutas/ → controladores/ → servicios/ → repositorios/
   utilidades/    errores (ErrorApi), tokens, logger, texto
-scripts/         migrar.js, respaldo.sh
-deploy/          Caddyfile
+scripts/         migrar.js
+docs/            DEPLOY-COOLIFY.md
 ```
 
 ### Reglas
@@ -68,15 +68,11 @@ deploy/          Caddyfile
 | GET | `/v1/auth/yo` | Bearer: usuario + empresas con rol y permisos |
 | GET | `/v1/config` | Bearer + `X-Empresa-Id`: canales, métodos de pago, categorías, motivos, sucursales, proveedores |
 
-## Producción (VPS)
+## Producción (VPS con Coolify)
 
-```bash
-# DNS: api.tudominio.cl → IP del VPS. Editar deploy/Caddyfile con el dominio.
-cp .env.example .env    # NODE_ENV=production, contraseñas fuertes, CORS_ORIGIN, COOKIE_DOMAIN=.tudominio.cl
-docker compose up -d --build
-docker compose run --rm api npm run migrar
-```
+Paso a paso en [docs/DEPLOY-COOLIFY.md](docs/DEPLOY-COOLIFY.md). En resumen:
 
-- Postgres no expone puertos. Para conectarte: `ssh -L 5432:localhost:5432 usuario@vps` y `docker compose exec db psql -U panema`.
-- Firewall: solo 22, 80 y 443.
-- Respaldos: `scripts/respaldo.sh` por cron diario, con copia fuera del VPS (`RCLONE_DESTINO`). Probar una restauración al menos una vez.
+- Postgres 16 como recurso de base de datos de Coolify, sin acceso público y con backups a S3/R2.
+- Esta API como aplicación desde GitHub (build pack Dockerfile, puerto 3000, dominio `https://api.tudominio.cl`).
+- Las migraciones corren solas al arrancar el contenedor (`CMD` del Dockerfile). Si una falla, el contenedor nuevo no levanta.
+- Volumen persistente en `/app/uploads` para las fotos.
