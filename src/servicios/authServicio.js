@@ -113,7 +113,7 @@ export async function cambiarPassword(usuarioId, sesionId, { actual, nueva }) {
     }
     const hash = await argon2.hash(nueva)
     await transaccion(async (db) => {
-        await db.query('update usuarios set password_hash = $2 where id = $1', [usuarioId, hash])
+        await db.query('update usuarios set password_hash = $2, debe_cambiar_password = false where id = $1', [usuarioId, hash])
         await db.query(
             'update sesiones set revocada_en = now() where usuario_id = $1 and id <> $2 and revocada_en is null',
             [usuarioId, sesionId],

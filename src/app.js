@@ -16,6 +16,7 @@ import productoRutas from './rutas/productoRutas.js'
 import insumoRutas from './rutas/insumoRutas.js'
 import promoRutas from './rutas/promoRutas.js'
 import { egresoRutas, mermaRutas, ventaRutas } from './rutas/movimientoRutas.js'
+import { equipoRutas } from './rutas/equipoRutas.js'
 
 export const app = express()
 
@@ -68,7 +69,8 @@ deEmpresa.use('/promos', promoRutas)
 deEmpresa.use('/ventas', ventaRutas)
 deEmpresa.use('/egresos', egresoRutas)
 deEmpresa.use('/mermas', mermaRutas)
-// Próximas fases: estadisticas, equipo
+deEmpresa.use('/equipo', equipoRutas)
+// Próximas fases: estadisticas
 app.use('/v1', deEmpresa)
 
 app.use(noEncontrada)

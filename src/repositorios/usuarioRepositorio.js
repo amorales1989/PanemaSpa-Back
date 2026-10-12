@@ -1,5 +1,5 @@
 // Tabla de plataforma (sin RLS): siempre filtrar explícitamente.
-const COLUMNAS = 'id, email, nombre, telefono, es_superadmin, email_verificado_en, activo, created_at'
+const COLUMNAS = 'id, email, nombre, telefono, es_superadmin, debe_cambiar_password, email_verificado_en, activo, created_at'
 
 export const buscarPorEmail = async (db, email) => {
     const { rows } = await db.query(`select ${COLUMNAS}, password_hash from usuarios where email = $1`, [email])

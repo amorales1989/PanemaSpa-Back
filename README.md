@@ -81,6 +81,11 @@ Respuestas en camelCase. Las rutas `/v1/*` (salvo `/v1/auth/*`) requieren `Autho
 | PATCH | `/v1/admin/empresas/:id/estado` | `{ estado: activa \| suspendida }` (suspendida → sus usuarios reciben 403) |
 | PATCH | `/v1/admin/empresas/:id/suscripcion` | `{ planCodigo?, estado?, pruebaHasta?, periodoFin? }` |
 | GET | `/v1/admin/planes` | |
+| GET / POST | `/v1/admin/empresas/:id/usuarios` | miembros y roles / agregar `{ nombre, email, rolId }` → `passwordTemporal` (solo cuentas nuevas) |
+| PATCH | `/v1/admin/empresas/:id/usuarios/:membresiaId` | `{ rolId?, estado? }`; nunca deja la empresa sin dueño activo |
+| POST | `/v1/admin/empresas/:id/usuarios/:membresiaId/restablecer-password` | contraseña temporal nueva y cierra sus sesiones |
+
+**Equipo** (desde la app, permiso usuarios.gestionar): mismas rutas en `/v1/equipo`. Solo un dueño puede nombrar o modificar dueños, y nadie puede cambiar su propio rol. Las cuentas nuevas quedan con `debeCambiarPassword: true` y el front pide cambiar la contraseña en el primer ingreso.
 
 **Configuración**
 
