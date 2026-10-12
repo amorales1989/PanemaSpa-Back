@@ -17,3 +17,10 @@ export const pool = new pg.Pool({
 pool.on('error', (error) => {
     console.error('[pg] Error en conexión inactiva:', error.message)
 })
+
+// Solo para el panel de plataforma (rutas /v1/admin). Nunca usarla en rutas de empresa.
+const urlAdmin = env.DATABASE_URL_ADMIN ?? env.DATABASE_URL_MIGRACIONES
+export const poolAdmin = urlAdmin ? new pg.Pool({ connectionString: urlAdmin, max: 3 }) : null
+poolAdmin?.on('error', (error) => {
+    console.error('[pg admin] Error en conexión inactiva:', error.message)
+})

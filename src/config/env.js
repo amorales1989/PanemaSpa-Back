@@ -5,6 +5,10 @@ const esquema = z.object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().default(3000),
     DATABASE_URL: z.string().url(),
+    // Panel de plataforma (superadmin): conexión que ve todas las empresas (dueño de las tablas, sin RLS).
+    // Si no se define se usa DATABASE_URL_MIGRACIONES; sin ninguna, /v1/admin responde 503.
+    DATABASE_URL_ADMIN: z.string().url().optional(),
+    DATABASE_URL_MIGRACIONES: z.string().url().optional(),
     JWT_SECRET: z.string().min(32, 'JWT_SECRET debe tener al menos 32 caracteres'),
     CORS_ORIGIN: z.string().default('http://localhost:5173'),
     COOKIE_DOMAIN: z.string().optional().transform((v) => v || undefined),

@@ -68,6 +68,18 @@ Respuestas en camelCase. Las rutas `/v1/*` (salvo `/v1/auth/*`) requieren `Autho
 | POST | `/v1/auth/registro` | crea usuario dueño + empresa + prueba de 14 días |
 | POST | `/v1/auth/login` · `/refresh` · `/logout` | sesión (refresh en cookie `panema_rt`, rotativo) |
 | GET | `/v1/auth/yo` | usuario + empresas con rol y permisos |
+| POST | `/v1/auth/cambiar-password` | `{ actual, nueva }`; cierra las demás sesiones |
+
+**Panel de plataforma** (solo `usuarios.es_superadmin`; sin `X-Empresa-Id`)
+
+| Método | Ruta | |
+|---|---|---|
+| GET | `/v1/admin/resumen` | totales de la plataforma |
+| GET | `/v1/admin/empresas?buscar&estado` | empresas con plan, suscripción, usuarios, ventas 30 días, última actividad |
+| GET | `/v1/admin/empresas/:id` | detalle + usuarios + historial de suscripciones |
+| PATCH | `/v1/admin/empresas/:id/estado` | `{ estado: activa \| suspendida }` (suspendida → sus usuarios reciben 403) |
+| PATCH | `/v1/admin/empresas/:id/suscripcion` | `{ planCodigo?, estado?, pruebaHasta?, periodoFin? }` |
+| GET | `/v1/admin/planes` | |
 
 **Configuración**
 

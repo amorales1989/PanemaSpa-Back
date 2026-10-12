@@ -10,6 +10,7 @@ import { manejarErrores, noEncontrada } from './middlewares/errores.js'
 
 import { camelizar } from './utilidades/camel.js'
 import authRutas from './rutas/authRutas.js'
+import adminRutas from './rutas/adminRutas.js'
 import configuracionRutas from './rutas/configuracionRutas.js'
 import productoRutas from './rutas/productoRutas.js'
 import insumoRutas from './rutas/insumoRutas.js'
@@ -54,6 +55,8 @@ app.get('/salud', async (req, res) => {
 
 // Públicas (o con auth propia)
 app.use('/v1/auth', authRutas)
+// Panel de plataforma (superadmin), sin empresa activa
+app.use('/v1/admin', adminRutas)
 
 // De aquí en adelante: usuario autenticado + empresa activa (X-Empresa-Id)
 const deEmpresa = express.Router()
@@ -65,7 +68,7 @@ deEmpresa.use('/promos', promoRutas)
 deEmpresa.use('/ventas', ventaRutas)
 deEmpresa.use('/egresos', egresoRutas)
 deEmpresa.use('/mermas', mermaRutas)
-// Próximas fases: estadisticas, equipo, admin de plataforma
+// Próximas fases: estadisticas, equipo
 app.use('/v1', deEmpresa)
 
 app.use(noEncontrada)

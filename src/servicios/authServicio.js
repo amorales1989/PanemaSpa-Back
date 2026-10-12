@@ -4,7 +4,7 @@ import * as usuarioRepositorio from '../repositorios/usuarioRepositorio.js'
 import * as sesionRepositorio from '../repositorios/sesionRepositorio.js'
 import * as empresaRepositorio from '../repositorios/empresaRepositorio.js'
 import { DIAS_REFRESH, firmarAcceso, hashToken, tokenAleatorio } from '../utilidades/tokens.js'
-import { conflicto, noAutenticado } from '../utilidades/errores.js'
+import { ErrorApi, conflicto, noAutenticado } from '../utilidades/errores.js'
 import { slugificar } from '../utilidades/texto.js'
 import { logger } from '../utilidades/logger.js'
 
@@ -69,6 +69,9 @@ export async function refrescar(refreshToken, cliente) {
     const resultado = await transaccion(async (db) => {
         const sesion = await sesionRepositorio.buscarPorHash(db, hashToken(refreshToken))
         if (!sesion) return { error: 'inexistente' }
+        // Revocado hace segundos: otra pestaña lo rotó primero (el navegador ya tiene la cookie nueva).
+        // No es un robo: se rechaza solo este pedido y el front reintenta.
+        if (sesion.revocada_reciente) return { error: 'rotada' }
         if (sesion.revocada_en) {
             await sesionRepositorio.revocarTodas(db, sesion.usuario_id)
             logger.warn({ usuarioId: sesion.usuario_id }, 'refresh token reutilizado: sesiones cerradas')
@@ -81,6 +84,7 @@ export async function refrescar(refreshToken, cliente) {
         return emitirSesion(db, sesion.usuario_id, cliente)
     })
     // El error se lanza fuera de la transacción para que la revocación masiva quede confirmada
+    if (resultado.error === 'rotada') throw new ErrorApi(401, 'SESION_ROTADA', 'La sesión se renovó en otra pestaña, reintenta')
     if (resultado.error) throw noAutenticado('La sesión expiró, vuelve a iniciar sesión')
     return resultado
 }
@@ -99,4 +103,21 @@ export async function perfil(usuarioId) {
     if (!usuario?.activo) throw noAutenticado()
     const empresas = await empresaRepositorio.listarDeUsuario(db, usuarioId)
     return { usuario, empresas }
+}
+
+// Cambia la contraseña y cierra las demás sesiones (la actual sigue abierta)
+export async function cambiarPassword(usuarioId, sesionId, { actual, nueva }) {
+    const { rows } = await consultar('select password_hash from usuarios where id = $1 and activo', [usuarioId])
+    if (!rows[0] || !(await argon2.verify(rows[0].password_hash ?? HASH_FALSO, actual))) {
+        throw new ErrorApi(400, 'PASSWORD_INCORRECTA', 'La contraseña actual no es correcta')
+    }
+    const hash = await argon2.hash(nueva)
+    await transaccion(async (db) => {
+        await db.query('update usuarios set password_hash = $2 where id = $1', [usuarioId, hash])
+        await db.query(
+            'update sesiones set revocada_en = now() where usuario_id = $1 and id <> $2 and revocada_en is null',
+            [usuarioId, sesionId],
+        )
+    })
+    logger.info({ usuarioId }, 'contraseña cambiada')
 }

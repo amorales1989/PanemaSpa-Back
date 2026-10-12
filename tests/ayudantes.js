@@ -1,6 +1,6 @@
 // Utilidades para los tests de punta a punta
 import { app } from '../src/app.js'
-import { pool } from '../src/config/db.js'
+import { pool, poolAdmin } from '../src/config/db.js'
 
 export { pool }
 
@@ -15,6 +15,7 @@ export function iniciar() {
 export async function terminar() {
     servidor.close()
     await pool.end()
+    await poolAdmin?.end()
 }
 
 export async function pedir(ruta, { metodo = 'GET', token, empresa, body, cookie, headers = {} } = {}) {

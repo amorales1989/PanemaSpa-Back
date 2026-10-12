@@ -44,3 +44,8 @@ export const cerrarSesion = async (req, res) => {
 export const perfil = async (req, res) => {
     res.json(await authServicio.perfil(req.usuario.id))
 }
+
+export const cambiarPassword = async (req, res) => {
+    await authServicio.cambiarPassword(req.usuario.id, req.usuario.sesionId, req.body)
+    res.status(204).end()
+}

@@ -3,7 +3,7 @@
 import { after, before, describe, test } from 'node:test'
 import assert from 'node:assert/strict'
 import { app } from '../src/app.js'
-import { pool } from '../src/config/db.js'
+import { pool, poolAdmin } from '../src/config/db.js'
 
 let base
 let servidor
@@ -45,6 +45,7 @@ before(async () => {
 after(async () => {
     servidor.close()
     await pool.end()
+    await poolAdmin?.end()
 })
 
 describe('registro y sesión', () => {
@@ -101,8 +102,16 @@ describe('registro y sesión', () => {
         const nuevo = soloCookie(r1.cookie)
         assert.notEqual(nuevo, viejo)
 
+        // Reuso inmediato (otra pestaña): se rechaza, pero no cierra las sesiones
+        const pestana = await pedir('/v1/auth/refresh', { metodo: 'POST', cookie: viejo })
+        assert.equal(pestana.status, 401)
+        assert.equal(pestana.datos.codigo, 'SESION_ROTADA')
+
+        // Reuso pasado el minuto de gracia: posible robo → se cierran todas
+        await pool.query("update sesiones set revocada_en = now() - interval '5 minutes' where revocada_en > now() - interval '1 minute'")
         const reuso = await pedir('/v1/auth/refresh', { metodo: 'POST', cookie: viejo })
         assert.equal(reuso.status, 401)
+        assert.equal(reuso.datos.codigo, 'NO_AUTENTICADO')
 
         // El token nuevo también quedó revocado por la detección de reuso
         const r2 = await pedir('/v1/auth/refresh', { metodo: 'POST', cookie: nuevo })

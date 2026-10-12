@@ -38,4 +38,11 @@ router.post('/refresh', authControlador.refrescar)
 router.post('/logout', authControlador.cerrarSesion)
 router.get('/yo', auth, authControlador.perfil)
 
+const esquemaPassword = z.object({
+    actual: z.string().min(1).max(200),
+    nueva: z.string().min(8, 'Mínimo 8 caracteres').max(200),
+}).refine((d) => d.actual !== d.nueva, { message: 'La nueva contraseña debe ser distinta', path: ['nueva'] })
+
+router.post('/cambiar-password', limiteAcceso, auth, validar(esquemaPassword), authControlador.cambiarPassword)
+
 export default router

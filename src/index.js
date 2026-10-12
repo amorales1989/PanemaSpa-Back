@@ -1,5 +1,5 @@
 import { env } from './config/env.js'
-import { pool } from './config/db.js'
+import { pool, poolAdmin } from './config/db.js'
 import { app } from './app.js'
 import { logger } from './utilidades/logger.js'
 
@@ -16,6 +16,7 @@ const apagar = (senal) => {
     logger.info(`${senal} recibido, cerrando...`)
     servidor.close(async () => {
         await pool.end()
+        await poolAdmin?.end()
         process.exit(0)
     })
     setTimeout(() => process.exit(1), 10_000).unref()

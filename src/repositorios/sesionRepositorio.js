@@ -11,7 +11,8 @@ export const crear = async (db, { usuarioId, tokenHash, userAgent, ip, dias }) =
 // "for update" evita que dos refresh simultáneos con el mismo token roten dos veces
 export const buscarPorHash = async (db, tokenHash) => {
     const { rows } = await db.query(
-        `select id, usuario_id, expira_en, revocada_en, expira_en < now() as vencida
+        `select id, usuario_id, expira_en, revocada_en, expira_en < now() as vencida,
+                revocada_en > now() - interval '60 seconds' as revocada_reciente
          from sesiones where refresh_token_hash = $1 for update`,
         [tokenHash],
     )
