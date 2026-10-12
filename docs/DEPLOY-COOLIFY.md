@@ -67,8 +67,7 @@ Coolify → **Projects → + Add** → nombre `Panema`. Usa el ambiente `product
    | `DATABASE_URL` | la misma URL, cambiando `panema:<DB_OWNER>` por `panema_app:<APP_DB_PASSWORD>` |
    | `APP_DB_PASSWORD` | el secreto `APP_DB_PASSWORD` |
    | `JWT_SECRET` | el secreto `JWT_SECRET` |
-   | `CORS_ORIGIN` | `https://app.tudominio.cl` (y la URL de Vercel si la usas mientras tanto, separada por coma) |
-   | `COOKIE_DOMAIN` | `.tudominio.cl` |
+   | `CORS_ORIGIN`, `COOKIE_PATH`, `TRUST_PROXY` | ver paso 5 |
    | `UPLOADS_DIR` | `/app/uploads` |
 
    Ejemplo de `DATABASE_URL`:
@@ -105,10 +104,26 @@ curl -X POST https://api.tudominio.cl/v1/auth/registro \
 
 Ese primer registro deja creada la empresa Panema con su dueño.
 
-## 5. Front en Vercel
+## 5. Front en Vercel (`panema-spa.vercel.app`)
 
-- Variable `VITE_API_URL=https://api.tudominio.cl` en Project Settings → Environment Variables. El front todavía no la usa; se conecta en la Fase 6.
-- Dominio `app.tudominio.cl` en Project Settings → Domains. El front y la API tienen que compartir el dominio raíz para que la cookie de sesión funcione.
+`vercel.app` es un dominio compartido, así que el navegador trata al front y a la API como sitios distintos y Safari bloquea la cookie de sesión. Por eso **Vercel hace de proxy**:
+
+```
+navegador ──▶ panema-spa.vercel.app/api/v1/... ──(rewrite de Vercel)──▶ https://API_COOLIFY/v1/...
+```
+
+- `vercel.json` del front reenvía `/api/:path*` al dominio de la API en Coolify.
+- El front llama siempre a `/api/...` (mismo origen): no hay CORS y la cookie es de primera parte.
+- Variables del back para este modo:
+
+  | Variable | Valor |
+  |---|---|
+  | `CORS_ORIGIN` | `https://panema-spa.vercel.app` |
+  | `COOKIE_PATH` | `/api/v1/auth` |
+  | `TRUST_PROXY` | `2` (Vercel + Coolify) |
+  | `COOKIE_DOMAIN` | *(no definirla)* |
+
+**Con dominio propio** (`app.tudominio.cl` + `api.tudominio.cl`) se puede seguir con el proxy o llamar directo a la API. Para llamar directo: `COOKIE_DOMAIN=.tudominio.cl`, `COOKIE_PATH=/v1/auth`, `TRUST_PROXY=1`, y `CORS_ORIGIN` con el dominio nuevo.
 
 ## 6. Entrar a la base
 
@@ -129,5 +144,5 @@ Ese primer registro deja creada la empresa Panema con su dueño.
 | `password authentication failed for user "panema_app"` | `APP_DB_PASSWORD` no coincide con la contraseña dentro de `DATABASE_URL` |
 | `getaddrinfo ENOTFOUND` | El hostname de la URL no es el interno del recurso, o la base está en otro servidor o red de Coolify |
 | El certificado no se emite | El DNS todavía no apunta al VPS, o Cloudflare está en modo proxy |
-| Login OK pero el refresh falla desde el front | El front no está en el mismo dominio raíz que la API, o `COOKIE_DOMAIN` está mal |
+| Login OK pero el refresh falla desde el front | El front no llama por `/api` (proxy de Vercel), o `COOKIE_PATH` no es `/api/v1/auth` |
 | CORS bloqueado | El origen exacto del front, con `https://`, no está en `CORS_ORIGIN` |

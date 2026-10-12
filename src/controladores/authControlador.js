@@ -8,7 +8,7 @@ const opcionesCookie = {
     secure: env.esProduccion,
     sameSite: 'lax',
     domain: env.COOKIE_DOMAIN,
-    path: '/v1/auth',
+    path: env.COOKIE_PATH,
 }
 
 const datosCliente = (req) => ({ userAgent: req.get('user-agent'), ip: req.ip })

@@ -13,8 +13,8 @@ import configuracionRutas from './rutas/configuracionRutas.js'
 
 export const app = express()
 
-// Detrás del proxy de Coolify (Traefik): req.ip toma la IP real del cliente (rate limit y sesiones)
-app.set('trust proxy', 1)
+// Detrás de proxies (Coolify y, si aplica, Vercel): req.ip toma la IP real del cliente (rate limit y sesiones)
+app.set('trust proxy', env.TRUST_PROXY)
 app.disable('x-powered-by')
 
 app.use(helmet())

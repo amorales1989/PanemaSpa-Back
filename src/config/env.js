@@ -8,6 +8,11 @@ const esquema = z.object({
     JWT_SECRET: z.string().min(32, 'JWT_SECRET debe tener al menos 32 caracteres'),
     CORS_ORIGIN: z.string().default('http://localhost:5173'),
     COOKIE_DOMAIN: z.string().optional().transform((v) => v || undefined),
+    // Ruta de la cookie del refresh token tal como la ve el navegador.
+    // Con el front en Vercel haciendo proxy de /api → API: '/api/v1/auth'
+    COOKIE_PATH: z.string().default('/v1/auth'),
+    // Cantidad de proxies delante de la API: 1 = solo Coolify, 2 = Vercel + Coolify
+    TRUST_PROXY: z.coerce.number().int().min(0).default(1),
     UPLOADS_DIR: z.string().default('./uploads'),
 })
 
