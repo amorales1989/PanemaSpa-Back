@@ -1,0 +1,29 @@
+{
+  "name": "panemaspa-back",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/index.js",
+    "start": "node src/index.js",
+    "migrar": "node --env-file-if-exists=.env scripts/migrar.js",
+    "db:dev": "docker compose -f docker-compose.dev.yml up -d",
+    "test": "node --env-file-if-exists=.env.test --test 'tests/**/*.test.js'"
+  },
+  "dependencies": {
+    "argon2": "^0.41.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jose": "^5.9.6",
+    "pg": "^8.13.1",
+    "pino": "^9.6.0",
+    "zod": "^3.24.1"
+  }
+}

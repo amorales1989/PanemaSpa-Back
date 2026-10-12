@@ -1,0 +1,15 @@
+# Solo la base de datos, para desarrollar en local (la API corre con npm run dev)
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: panema
+      POSTGRES_USER: panema
+      POSTGRES_PASSWORD: cambiar-dueno
+    ports:
+      - "5432:5432"
+    volumes:
+      - panema_db_dev:/var/lib/postgresql/data
+
+volumes:
+  panema_db_dev:

@@ -1,0 +1,50 @@
+# Producción en el VPS: Postgres + API + Caddy (HTTPS automático)
+#   docker compose up -d --build
+#   docker compose run --rm api npm run migrar
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: panema
+      POSTGRES_USER: panema
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:?falta DB_OWNER_PASSWORD}
+    volumes:
+      - panema_db:/var/lib/postgresql/data
+    # Sin "ports": Postgres NO queda expuesto a internet, solo a la red interna
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panema -d panema"]
+      interval: 10s
+      retries: 5
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://panema_app:${APP_DB_PASSWORD}@db:5432/panema
+      DATABASE_URL_MIGRACIONES: postgres://panema:${DB_OWNER_PASSWORD}@db:5432/panema
+      UPLOADS_DIR: /app/uploads
+    volumes:
+      - panema_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - panema_uploads:/srv/uploads:ro
+      - caddy_data:/data
+    depends_on:
+      - api
+
+volumes:
+  panema_db:
+  panema_uploads:
+  caddy_data:
