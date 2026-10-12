@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: panema
       POSTGRES_PASSWORD: cambiar-dueno
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - panema_db_dev:/var/lib/postgresql/data
 

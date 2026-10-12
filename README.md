@@ -10,7 +10,7 @@ El plan completo y el modelo de datos están en el repo del front: `docs/PLAN-SA
 ```bash
 npm install
 cp .env.example .env          # completar JWT_SECRET (openssl rand -base64 48)
-npm run db:dev                # Postgres en Docker (puerto 5432)
+npm run db:dev                # Postgres en Docker (puerto 5434)
 npm run migrar                # aplica src/db/migraciones/*.sql
 npm run dev                   # http://localhost:3000/salud
 ```
