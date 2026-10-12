@@ -8,8 +8,13 @@ import { auth } from './middlewares/auth.js'
 import { empresa } from './middlewares/empresa.js'
 import { manejarErrores, noEncontrada } from './middlewares/errores.js'
 
+import { camelizar } from './utilidades/camel.js'
 import authRutas from './rutas/authRutas.js'
 import configuracionRutas from './rutas/configuracionRutas.js'
+import productoRutas from './rutas/productoRutas.js'
+import insumoRutas from './rutas/insumoRutas.js'
+import promoRutas from './rutas/promoRutas.js'
+import { egresoRutas, mermaRutas, ventaRutas } from './rutas/movimientoRutas.js'
 
 export const app = express()
 
@@ -23,8 +28,16 @@ app.use(cors({
     credentials: true, // la cookie del refresh token
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Empresa-Id', 'Idempotency-Key'],
 }))
-app.use(express.json({ limit: '1mb' }))
+// 3 MB: alcanza para la foto de un producto en base64 (~1,5 MB)
+app.use(express.json({ limit: '3mb' }))
 app.use(cookieParser())
+
+// Todas las respuestas JSON en camelCase (la BD usa snake_case)
+app.use((req, res, next) => {
+    const json = res.json.bind(res)
+    res.json = (cuerpo) => json(camelizar(cuerpo))
+    next()
+})
 
 // Fotos de productos (volumen persistente en UPLOADS_DIR)
 app.use('/uploads', express.static(env.UPLOADS_DIR, {
@@ -46,7 +59,13 @@ app.use('/v1/auth', authRutas)
 const deEmpresa = express.Router()
 deEmpresa.use(auth, empresa)
 deEmpresa.use('/config', configuracionRutas)
-// Próximas fases: productos, insumos, promos, ventas, egresos, mermas, estadisticas, equipo
+deEmpresa.use('/productos', productoRutas)
+deEmpresa.use('/insumos', insumoRutas)
+deEmpresa.use('/promos', promoRutas)
+deEmpresa.use('/ventas', ventaRutas)
+deEmpresa.use('/egresos', egresoRutas)
+deEmpresa.use('/mermas', mermaRutas)
+// Próximas fases: estadisticas, equipo, admin de plataforma
 app.use('/v1', deEmpresa)
 
 app.use(noEncontrada)

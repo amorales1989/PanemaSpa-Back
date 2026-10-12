@@ -83,7 +83,7 @@ describe('registro y sesión', () => {
         const r = await pedir('/v1/auth/yo', { token: a.datos.accessToken })
         assert.equal(r.status, 200)
         assert.equal(r.datos.empresas.length, 1)
-        assert.equal(r.datos.empresas[0].rol_codigo, 'dueno')
+        assert.equal(r.datos.empresas[0].rolCodigo, 'dueno')
         assert.ok(r.datos.empresas[0].permisos.includes('suscripcion.gestionar'))
     })
 
@@ -117,7 +117,7 @@ describe('aislamiento entre empresas', () => {
         assert.equal(r.datos.empresa.id, a.datos.empresa.id)
         assert.deepEqual(r.datos.metodosPago.map((m) => m.nombre), ['Efectivo', 'Débito', 'Crédito', 'Transferencia'])
         assert.equal(r.datos.sucursales.length, 1)
-        assert.equal(r.datos.categorias.egreso.find((c) => c.con_items)?.nombre, 'Insumos')
+        assert.equal(r.datos.categorias.egreso.find((c) => c.conItems)?.nombre, 'Insumos')
     })
 
     test('usuario de A pidiendo la empresa B → 403', async () => {

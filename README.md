@@ -56,17 +56,48 @@ docs/            DEPLOY-COOLIFY.md
 - Los errores se lanzan con `ErrorApi` (`utilidades/errores.js`). Express 5 los lleva solo al middleware de errores, así que no hace falta un try/catch por controlador.
 - Una migración ya aplicada no se edita: los cambios van en un archivo `00N_*.sql` nuevo.
 
-## Endpoints actuales
+## Endpoints
 
-| Método | Ruta | Auth |
+Respuestas en camelCase. Las rutas `/v1/*` (salvo `/v1/auth/*`) requieren `Authorization: Bearer <token>` y `X-Empresa-Id`. Entre paréntesis, el permiso.
+
+**Auth**
+
+| Método | Ruta | |
 |---|---|---|
 | GET | `/salud` | — |
-| POST | `/v1/auth/registro` | — (crea usuario dueño + empresa + prueba de 14 días) |
-| POST | `/v1/auth/login` | — |
-| POST | `/v1/auth/refresh` | cookie `panema_rt` (rota el token) |
-| POST | `/v1/auth/logout` | cookie |
-| GET | `/v1/auth/yo` | Bearer: usuario + empresas con rol y permisos |
-| GET | `/v1/config` | Bearer + `X-Empresa-Id`: canales, métodos de pago, categorías, motivos, sucursales, proveedores |
+| POST | `/v1/auth/registro` | crea usuario dueño + empresa + prueba de 14 días |
+| POST | `/v1/auth/login` · `/refresh` · `/logout` | sesión (refresh en cookie `panema_rt`, rotativo) |
+| GET | `/v1/auth/yo` | usuario + empresas con rol y permisos |
+
+**Configuración**
+
+| Método | Ruta | |
+|---|---|---|
+| GET | `/v1/config` | canales, métodos de pago, motivos, categorías, sucursales y proveedores (cualquier miembro) |
+| POST / PATCH | `/v1/config/:lista[/:id]` | `canales`, `metodos-pago`, `motivos-merma`, `categorias`, `proveedores` (configuracion.gestionar), `sucursales` (sucursales.gestionar). No se borra: `activo: false` |
+
+**Catálogo**
+
+| Método | Ruta | |
+|---|---|---|
+| GET / POST | `/v1/productos` | listar (productos.ver; `costo` solo con productos.ver_costos) / crear (productos.gestionar). Sin `codigo` se asigna el siguiente (101…) |
+| GET / PATCH / DELETE | `/v1/productos/:id` | borrado lógico; no deja borrar si está en una promo |
+| GET | `/v1/productos/siguiente-codigo` · `/:id/historial-precios` | |
+| POST | `/v1/productos/ajuste-precios` | `{ motivo, cambios: [{ id, precio }] }` (precios.ajustar) |
+| PUT / DELETE | `/v1/productos/:id/imagen` | `{ imagen: "data:image/jpeg;base64,..." }` → `imagenUrl` (`/uploads/...`) |
+| CRUD | `/v1/insumos` · `/:id/compras` | código 501…; `precio` = último precio de compra |
+| CRUD | `/v1/promos` | `{ nombre, precio, productos: [{ productoId, cantidad }] }`; devuelve `precioNormal`. Código 901… |
+
+**Movimientos** (header opcional `Idempotency-Key`: un reintento devuelve el mismo registro con 200)
+
+| Método | Ruta | |
+|---|---|---|
+| POST | `/v1/ventas` | `{ canalId, metodoPagoId, items: [{ productoId \| promoId, cantidad, precio? }], fecha?, sucursalId? }`. Precios y costos los pone el servidor; un `precio` distinto exige ventas.modificar_precio |
+| GET | `/v1/ventas` · `/:id` | paginado `?desde&hasta&estado&limite&cursor`. Sin ventas.ver_todas solo las propias |
+| POST | `/v1/ventas/:id/anular` | `{ motivo }` (ventas.anular) |
+| POST / GET | `/v1/egresos` | categoría con insumos: `items: [{ insumoId, cantidad, precio }]` + `proveedor` (texto; se crea si no existe). Otras: `monto` + `descripcion` |
+| POST / GET | `/v1/mermas` | `{ motivoId, items: [{ productoId \| insumoId, cantidad }] }`, valorizada a costo |
+| POST | `/v1/egresos/:id/anular` · `/v1/mermas/:id/anular` | |
 
 ## Producción (VPS con Coolify)
 
