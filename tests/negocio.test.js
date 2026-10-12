@@ -59,6 +59,17 @@ describe('productos', () => {
         ids.cafe = r3.datos.id
     })
 
+    test('categoría por nombre: usa la existente o la crea', async () => {
+        const r = await dueno.post('/productos', { nombre: 'Pan integral', categoria: 'panes', unidad: 'un', precio: 600 })
+        assert.equal(r.datos.categoria, 'Panes')
+        const n = await dueno.post('/productos', { nombre: 'Empanada', categoria: 'Salados', unidad: 'un', precio: 1500 })
+        assert.equal(n.datos.categoria, 'Salados')
+        const cats = (await dueno.get('/config')).datos.categorias.producto.map((c) => c.nombre)
+        assert.ok(cats.includes('Salados'))
+        await dueno.del(`/productos/${r.datos.id}`)
+        await dueno.del(`/productos/${n.datos.id}`)
+    })
+
     test('categoría de insumos en un producto → 400; código repetido → 409', async () => {
         const secos = de(cfg.categorias.insumo, 'Secos')
         assert.equal((await dueno.post('/productos', { nombre: 'X', categoriaId: secos.id, unidad: 'un', precio: 1 })).status, 400)

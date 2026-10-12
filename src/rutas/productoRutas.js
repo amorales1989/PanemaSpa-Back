@@ -11,6 +11,7 @@ const esquema = z.object({
     codigo: codigo.optional(),           // si no viene, se asigna el siguiente libre
     nombre: texto(100),
     categoriaId: uuid.nullish(),
+    categoria: z.string().trim().min(1).max(60).optional(),   // nombre: se crea si no existe
     unidad,
     precio: dinero,
     costo: dinero.optional(),

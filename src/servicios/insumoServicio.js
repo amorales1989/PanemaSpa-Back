@@ -4,6 +4,16 @@ import * as catalogoRepositorio from '../repositorios/catalogoRepositorio.js'
 import { auditar } from '../utilidades/auditoria.js'
 import { datosInvalidos, noEncontrado } from '../utilidades/errores.js'
 
+// Acepta categoriaId o el nombre de la categoría (`categoria`), que se crea si no existe
+async function resolverCategoria(db, req, datos) {
+    const { categoria, ...resto } = datos
+    if (categoria && !resto.categoriaId) {
+        resto.categoriaId = await catalogoRepositorio.categoriaPorNombre(db, req.contexto.empresaId, 'insumo', categoria)
+    }
+    await validarCategoria(db, resto.categoriaId)
+    return resto
+}
+
 async function validarCategoria(db, categoriaId) {
     if (categoriaId && !(await catalogoRepositorio.categoriaDeAmbito(db, categoriaId, 'insumo'))) {
         throw datosInvalidos({ categoriaId: ['La categoría no existe o no es de insumos'] })
@@ -22,9 +32,9 @@ export const buscar = (req, id) =>
 export const siguienteCodigo = (req) =>
     conEmpresa(req.contexto, async (db) => ({ codigo: await catalogoRepositorio.siguienteCodigo(db, 'insumos') }))
 
-export const crear = (req, datos) =>
+export const crear = (req, entrada) =>
     conEmpresa(req.contexto, async (db) => {
-        await validarCategoria(db, datos.categoriaId)
+        const datos = await resolverCategoria(db, req, entrada)
         const id = await insumoRepositorio.crear(db, req.contexto.empresaId, {
             ...datos,
             codigo: datos.codigo ?? (await catalogoRepositorio.siguienteCodigo(db, 'insumos')),
@@ -32,9 +42,9 @@ export const crear = (req, datos) =>
         return insumoRepositorio.buscar(db, id)
     })
 
-export const actualizar = (req, id, cambios) =>
+export const actualizar = (req, id, entrada) =>
     conEmpresa(req.contexto, async (db) => {
-        await validarCategoria(db, cambios.categoriaId)
+        const cambios = await resolverCategoria(db, req, entrada)
         if (!(await insumoRepositorio.actualizar(db, id, cambios))) throw noEncontrado('Insumo no encontrado')
         return insumoRepositorio.buscar(db, id)
     })

@@ -26,7 +26,7 @@ export const filtroMovimientos = z.object({
     hasta: fecha.optional(),
     estado: z.enum(['confirmada', 'confirmado', 'anulada', 'anulado', 'todos']).optional(),
     cursor: z.string().max(100).optional(),
-    limite: z.coerce.number().int().min(1).max(200).default(50),
+    limite: z.coerce.number().int().min(1).max(1000).default(50),
 })
 
 export const anulacion = z.object({ motivo: texto(300) })

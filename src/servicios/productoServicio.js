@@ -11,6 +11,16 @@ import { tiene } from '../middlewares/permiso.js'
 
 const verCostos = (req) => tiene(req, 'productos.ver_costos')
 
+// Acepta categoriaId o el nombre de la categoría (`categoria`), que se crea si no existe
+async function resolverCategoria(db, req, datos) {
+    const { categoria, ...resto } = datos
+    if (categoria && !resto.categoriaId) {
+        resto.categoriaId = await catalogoRepositorio.categoriaPorNombre(db, req.contexto.empresaId, 'producto', categoria)
+    }
+    await validarCategoria(db, resto.categoriaId)
+    return resto
+}
+
 async function validarCategoria(db, categoriaId) {
     if (categoriaId && !(await catalogoRepositorio.categoriaDeAmbito(db, categoriaId, 'producto'))) {
         throw datosInvalidos({ categoriaId: ['La categoría no existe o no es de productos'] })
@@ -37,9 +47,9 @@ export const buscar = (req, id) =>
 export const siguienteCodigo = (req) =>
     conEmpresa(req.contexto, async (db) => ({ codigo: await catalogoRepositorio.siguienteCodigo(db, 'productos') }))
 
-export const crear = (req, datos) =>
+export const crear = (req, entrada) =>
     conEmpresa(req.contexto, async (db) => {
-        await validarCategoria(db, datos.categoriaId)
+        const datos = await resolverCategoria(db, req, entrada)
         const id = await productoRepositorio.crear(db, req.contexto.empresaId, {
             ...sinCostoSiNoCorresponde(req, datos),
             codigo: datos.codigo ?? (await catalogoRepositorio.siguienteCodigo(db, 'productos')),
@@ -48,9 +58,9 @@ export const crear = (req, datos) =>
         return productoRepositorio.buscar(db, id, verCostos(req))
     })
 
-export const actualizar = (req, id, cambios) =>
+export const actualizar = (req, id, entrada) =>
     conEmpresa(req.contexto, async (db) => {
-        await validarCategoria(db, cambios.categoriaId)
+        const cambios = await resolverCategoria(db, req, entrada)
         // El trigger anota el cambio de precio en el historial con este motivo
         await db.query("select set_config('app.motivo_precio', 'Edición', true)")
         const filas = await productoRepositorio.actualizar(db, id, sinCostoSiNoCorresponde(req, cambios))

@@ -11,6 +11,7 @@ const esquema = z.object({
     codigo: codigo.optional(),
     nombre: texto(100),
     categoriaId: uuid.nullish(),
+    categoria: z.string().trim().min(1).max(60).optional(),   // nombre: se crea si no existe
     unidad,
     precio: dinero.optional(),           // precio de referencia; después lo actualizan las compras
     activo: z.boolean().optional(),
