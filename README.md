@@ -85,6 +85,8 @@ Respuestas en camelCase. Las rutas `/v1/*` (salvo `/v1/auth/*`) requieren `Autho
 | PATCH | `/v1/admin/empresas/:id/usuarios/:membresiaId` | `{ rolId?, estado? }`; nunca deja la empresa sin dueño activo |
 | POST | `/v1/admin/empresas/:id/usuarios/:membresiaId/restablecer-password` | contraseña temporal nueva y cierra sus sesiones |
 
+**Importar catálogo** (`POST /v1/importar/catalogo`): `{ aplicar, productos: [{ fila, codigo?, nombre, categoria?, unidad, precio, costo? }], insumos: [...], promos: [{ fila, codigo?, nombre, precio, productos: [{ codigo, cantidad }] }] }`. Todo en una transacción: con `aplicar: false` (o si alguna fila falla) se deshace y devuelve el resumen y los errores por fila. Reconoce lo existente por código o nombre y lo actualiza; las categorías nuevas se crean solas.
+
 **Empresa** (`/v1/empresa`): GET para cualquier miembro, PATCH `{ nombre?, razonSocial?, rut? }` con configuracion.gestionar. Nunca incluye plan ni suscripción.
 
 **Equipo** (desde la app, permiso usuarios.gestionar): mismas rutas en `/v1/equipo`. Solo un dueño puede nombrar o modificar dueños, y nadie puede cambiar su propio rol. Las cuentas nuevas quedan con `debeCambiarPassword: true` y el front pide cambiar la contraseña en el primer ingreso.
