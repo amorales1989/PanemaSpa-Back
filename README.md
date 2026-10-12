@@ -55,6 +55,7 @@ docs/            DEPLOY-COOLIFY.md
 - Las rutas verifican **permisos** (`permiso('ventas.crear')`), nunca nombres de rol.
 - Los errores se lanzan con `ErrorApi` (`utilidades/errores.js`). Express 5 los lleva solo al middleware de errores, así que no hace falta un try/catch por controlador.
 - Una migración ya aplicada no se edita: los cambios van en un archivo `00N_*.sql` nuevo.
+- **Empresas en modo propio** (plan interno, ej. Panema con plan Fundador): usan el sistema como su desarrollo propio. Nada de lo que llega al cliente puede mencionar planes, pruebas, pagos ni suscripción. `/v1/auth/yo` devuelve `modoPropio: true` y el front oculta todo lo de facturación. El permiso `suscripcion.gestionar` se les quita automáticamente. Lo verifica un test en `tests/admin.test.js`.
 
 ## Endpoints
 

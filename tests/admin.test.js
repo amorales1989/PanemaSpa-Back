@@ -97,6 +97,21 @@ describe('empresas', () => {
         assert.equal(lista[0].fundadora, true)
     })
 
+    test('el cliente con plan interno no ve nada de planes ni suscripción', async () => {
+        // (la empresa ya quedó con plan Fundador en el test anterior)
+        const yo = await pedir('/v1/auth/yo', { token: cliente.token })
+        const empresa = yo.datos.empresas.find((e) => e.id === cliente.empresa)
+        assert.equal(empresa.modoPropio, true)
+        const config = await cliente.get('/config')
+        for (const cuerpo of [yo.datos, config.datos]) {
+            const texto = JSON.stringify(cuerpo).toLowerCase()
+            assert.ok(!/fundador|plan|suscripci|prueba_hasta|pruebahasta/.test(texto), `filtra datos de plan: ${texto.slice(0, 200)}`)
+        }
+        // Una empresa con plan normal no está en modo propio
+        const propia = (await pedir('/v1/auth/yo', { token: admin.token })).datos.empresas.find((e) => e.id === admin.empresa)
+        assert.equal(propia.modoPropio, false)
+    })
+
     test('cada acción queda auditada', async () => {
         const { rows } = await pool.query(
             "select accion from auditoria where empresa_id = $1 and accion like 'admin.%' order by id", [cliente.empresa])

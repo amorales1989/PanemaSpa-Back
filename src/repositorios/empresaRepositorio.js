@@ -38,6 +38,11 @@ export const listarDeUsuario = async (db, usuarioId) => {
     const { rows } = await db.query(
         `select e.id, e.nombre, e.slug, e.moneda, e.decimales, e.zona_horaria, e.logo_url, e.estado,
                 r.codigo as rol_codigo, r.nombre as rol_nombre,
+                -- modo_propio: empresa con plan interno (ej. Fundador) que usa el sistema como su
+                -- desarrollo propio. El front no muestra nada de planes, pruebas ni pagos.
+                -- Nunca exponer acá el plan ni la suscripción.
+                not coalesce((select p.publico from suscripciones s join planes p on p.id = s.plan_id
+                              where s.empresa_id = e.id and s.estado in ('prueba', 'activa') limit 1), true) as modo_propio,
                 coalesce(array_agg(rp.permiso_codigo order by rp.permiso_codigo)
                          filter (where rp.permiso_codigo is not null), '{}') as permisos
          from empresa_usuarios eu
@@ -49,5 +54,6 @@ export const listarDeUsuario = async (db, usuarioId) => {
          order by e.nombre`,
         [usuarioId],
     )
-    return rows
+    // Sin suscripción visible tampoco hay nada que gestionar
+    return rows.map((r) => (r.modo_propio ? { ...r, permisos: r.permisos.filter((p) => p !== 'suscripcion.gestionar') } : r))
 }
