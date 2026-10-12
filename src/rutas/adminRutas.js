@@ -19,7 +19,7 @@ const esquemaSuscripcion = z.object({
     planCodigo: z.string().trim().max(30).optional(),
     estado: z.enum(['prueba', 'activa', 'vencida', 'cancelada']).optional(),
     pruebaHasta: fecha.nullable().optional(),
-    periodoFin: fecha.optional(),
+    periodoFin: fecha.nullable().optional(),   // null = sin vencimiento (contrato indefinido)
 }).refine((d) => Object.keys(d).length > 0, 'No hay cambios')
 
 router.get('/resumen', adminControlador.resumen)

@@ -80,10 +80,28 @@ describe('empresas', () => {
         assert.equal((await patch(admin, `/empresas/${cliente.empresa}/suscripcion`, { planCodigo: 'inventado' })).status, 400)
     })
 
+    test('plan Fundador sin vencimiento y primero en la lista', async () => {
+        const planes = (await get(admin, '/planes')).datos
+        const fundador = planes.find((p) => p.codigo === 'fundador')
+        assert.equal(fundador.precioMensual, 0)
+        assert.equal(fundador.publico, false)
+
+        const r = await patch(admin, `/empresas/${cliente.empresa}/suscripcion`, { planCodigo: 'fundador', estado: 'activa', pruebaHasta: null, periodoFin: null })
+        assert.equal(r.status, 200)
+        assert.equal(r.datos.planCodigo, 'fundador')
+        assert.equal(r.datos.periodoFin, null)
+        assert.equal(r.datos.fundadora, true)
+
+        const lista = (await get(admin, '/empresas')).datos
+        assert.equal(lista[0].id, cliente.empresa)
+        assert.equal(lista[0].fundadora, true)
+    })
+
     test('cada acción queda auditada', async () => {
         const { rows } = await pool.query(
             "select accion from auditoria where empresa_id = $1 and accion like 'admin.%' order by id", [cliente.empresa])
         assert.deepEqual(rows.map((r) => r.accion).slice(0, 3), ['admin.empresa.suspender', 'admin.empresa.reactivar', 'admin.suscripcion'])
+        assert.ok(rows.length >= 5)
     })
 
     test('empresa inexistente → 404', async () => {

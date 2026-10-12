@@ -31,6 +31,7 @@ export async function listarEmpresas({ buscar, estado }) {
     const { rows } = await db().query(
         `select e.id, e.nombre, e.slug, e.estado, e.moneda, e.created_at,
                 p.codigo as plan_codigo, p.nombre as plan, s.estado as suscripcion, s.prueba_hasta, s.periodo_fin,
+                coalesce(p.codigo = 'fundador', false) as fundadora,
                 (select count(*) from empresa_usuarios eu where eu.empresa_id = e.id and eu.estado = 'activo') as usuarios,
                 (select u.email from empresa_usuarios eu join roles r on r.id = eu.rol_id join usuarios u on u.id = eu.usuario_id
                  where eu.empresa_id = e.id and r.codigo = 'dueno' order by eu.created_at limit 1) as dueno_email,
@@ -53,7 +54,7 @@ export async function listarEmpresas({ buscar, estado }) {
                 or exists (select 1 from empresa_usuarios eu join usuarios u on u.id = eu.usuario_id
                            where eu.empresa_id = e.id and u.email ilike '%' || $1 || '%'))
            and ($2::text is null or e.estado = $2)
-         order by e.created_at desc`,
+         order by coalesce(p.codigo = 'fundador', false) desc, e.created_at desc`,
         [buscar ?? null, estado ?? null],
     )
     return rows
@@ -63,7 +64,7 @@ export async function buscarEmpresa(id) {
     const { rows } = await db().query(
         `select e.id, e.nombre, e.razon_social, e.rut, e.slug, e.estado, e.moneda, e.zona_horaria, e.created_at,
                 s.id as suscripcion_id, p.codigo as plan_codigo, p.nombre as plan, s.estado as suscripcion,
-                s.prueba_hasta, s.periodo_inicio, s.periodo_fin,
+                s.prueba_hasta, s.periodo_inicio, s.periodo_fin, coalesce(p.codigo = 'fundador', false) as fundadora,
                 (select count(*) from productos where empresa_id = e.id and deleted_at is null) as productos,
                 (select count(*) from ventas where empresa_id = e.id and estado = 'confirmada') as ventas,
                 (select coalesce(sum(total), 0) from ventas where empresa_id = e.id and estado = 'confirmada') as monto_ventas,
@@ -101,7 +102,7 @@ export async function historialSuscripciones(empresaId) {
 
 export async function planes() {
     const { rows } = await db().query(
-        'select codigo, nombre, precio_mensual, moneda, max_usuarios, max_sucursales, max_productos, activo from planes order by precio_mensual',
+        'select codigo, nombre, precio_mensual, moneda, max_usuarios, max_sucursales, max_productos, activo, publico from planes order by publico desc, precio_mensual',
     )
     return rows
 }
@@ -132,17 +133,18 @@ export async function guardarSuscripcion(empresaId, cambios) {
                     plan_id = coalesce($2, plan_id),
                     estado = coalesce($3, estado),
                     prueba_hasta = case when $4::boolean then $5::date else prueba_hasta end,
-                    periodo_fin = coalesce($6::date, periodo_fin)
+                    periodo_fin = case when $6::boolean then $7::date else periodo_fin end
                  where id = $1`,
                 [actual.id, planId ?? null, cambios.estado ?? null, cambios.pruebaHasta !== undefined,
-                    cambios.pruebaHasta ?? null, cambios.periodoFin ?? null],
+                    cambios.pruebaHasta ?? null, cambios.periodoFin !== undefined, cambios.periodoFin ?? null],
             )
         } else {
             await cliente.query(
                 `insert into suscripciones (empresa_id, plan_id, estado, prueba_hasta, periodo_inicio, periodo_fin)
                  values ($1, coalesce($2, (select id from planes where codigo = 'basico')), coalesce($3, 'activa'),
-                         $4::date, current_date, coalesce($5::date, current_date + 30))`,
-                [empresaId, planId ?? null, cambios.estado ?? null, cambios.pruebaHasta ?? null, cambios.periodoFin ?? null],
+                         $4::date, current_date, case when $5::boolean then $6::date else current_date + 30 end)`,
+                [empresaId, planId ?? null, cambios.estado ?? null, cambios.pruebaHasta ?? null,
+                    cambios.periodoFin !== undefined, cambios.periodoFin ?? null],
             )
         }
         await cliente.query('commit')
