@@ -47,8 +47,15 @@ export const listar = async (db, lista) => {
     return rows
 }
 
-export const crear = async (db, lista, empresaId, datos) => {
+export const crear = async (db, lista, empresaId, entrada) => {
     const { tabla, columnas, campos } = LISTAS[lista]
+    // Lo nuevo va al final de la lista (dentro de su ámbito, en categorías)
+    const datos = { ...entrada }
+    if (campos.orden && datos.orden === undefined) {
+        const filtro = lista === 'categorias' ? 'where ambito = $1' : ''
+        const { rows } = await db.query(`select coalesce(max(orden) + 1, 0) as orden from ${tabla} ${filtro}`, lista === 'categorias' ? [datos.ambito] : [])
+        datos.orden = rows[0].orden
+    }
     const presentes = Object.keys(campos).filter((c) => datos[c] !== undefined)
     const nombres = presentes.map((c) => campos[c])
     const marcadores = presentes.map((_, i) => `$${i + 2}`)

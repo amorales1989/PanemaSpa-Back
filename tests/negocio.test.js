@@ -21,10 +21,14 @@ after(terminar)
 
 describe('configuración', () => {
     test('crear canal, rechazar duplicado y desactivar', async () => {
-        const r = await dueno.post('/config/canales', { nombre: 'Kiosko', orden: 9 })
+        const r = await dueno.post('/config/canales', { nombre: 'Kiosko' })
         assert.equal(r.status, 201)
         assert.equal(r.datos.nombre, 'Kiosko')
         assert.equal((await dueno.post('/config/canales', { nombre: 'Kiosko' })).status, 409)
+        assert.equal((await dueno.post('/config/canales', { nombre: 'kiosko' })).status, 409)
+        // Lo nuevo queda al final de la lista
+        const canales = (await dueno.get('/config')).datos.canales
+        assert.equal(canales.at(-1).nombre, 'Kiosko')
         const off = await dueno.patch(`/config/canales/${r.datos.id}`, { activo: false })
         assert.equal(off.datos.activo, false)
     })

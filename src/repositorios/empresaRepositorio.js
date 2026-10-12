@@ -57,3 +57,18 @@ export const listarDeUsuario = async (db, usuarioId) => {
     // Sin suscripción visible tampoco hay nada que gestionar
     return rows.map((r) => (r.modo_propio ? { ...r, permisos: r.permisos.filter((p) => p !== 'suscripcion.gestionar') } : r))
 }
+
+// Datos que el dueño puede ver y editar de su empresa (nunca plan ni suscripción)
+const DATOS_EMPRESA = 'id, nombre, razon_social, rut, slug, moneda, zona_horaria, logo_url'
+
+export const datos = async (db, id) =>
+    (await db.query(`select ${DATOS_EMPRESA} from empresas where id = $1 and deleted_at is null`, [id])).rows[0] ?? null
+
+export const actualizarDatos = async (db, id, { nombre, razonSocial, rut }) =>
+    (await db.query(
+        `update empresas set nombre = coalesce($2, nombre),
+                razon_social = case when $3::boolean then $4 else razon_social end,
+                rut = case when $5::boolean then $6 else rut end
+         where id = $1 and deleted_at is null returning ${DATOS_EMPRESA}`,
+        [id, nombre ?? null, razonSocial !== undefined, razonSocial ?? null, rut !== undefined, rut ?? null],
+    )).rows[0] ?? null

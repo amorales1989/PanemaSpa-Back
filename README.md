@@ -85,6 +85,8 @@ Respuestas en camelCase. Las rutas `/v1/*` (salvo `/v1/auth/*`) requieren `Autho
 | PATCH | `/v1/admin/empresas/:id/usuarios/:membresiaId` | `{ rolId?, estado? }`; nunca deja la empresa sin dueño activo |
 | POST | `/v1/admin/empresas/:id/usuarios/:membresiaId/restablecer-password` | contraseña temporal nueva y cierra sus sesiones |
 
+**Empresa** (`/v1/empresa`): GET para cualquier miembro, PATCH `{ nombre?, razonSocial?, rut? }` con configuracion.gestionar. Nunca incluye plan ni suscripción.
+
 **Equipo** (desde la app, permiso usuarios.gestionar): mismas rutas en `/v1/equipo`. Solo un dueño puede nombrar o modificar dueños, y nadie puede cambiar su propio rol. Las cuentas nuevas quedan con `debeCambiarPassword: true` y el front pide cambiar la contraseña en el primer ingreso.
 
 **Configuración**

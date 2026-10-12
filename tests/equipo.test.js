@@ -118,6 +118,23 @@ describe('desde la app (dueño y administrador)', () => {
         assert.equal((await clienteDe(l.datos.accessToken, dueno.empresa).get('/equipo')).status, 403)
     })
 
+    test('datos de la empresa: el dueño los edita, el vendedor no', async () => {
+        const r = await dueno.patch('/empresa', { nombre: 'Panadería Renovada', razonSocial: 'Renovada SpA', rut: '76.123.456-7' })
+        assert.equal(r.status, 200)
+        assert.equal(r.datos.razonSocial, 'Renovada SpA')
+        const texto = JSON.stringify(r.datos).toLowerCase()
+        assert.ok(!/plan|suscripci/.test(texto))
+        const yo = await pedir('/v1/auth/yo', { token: dueno.token })
+        assert.equal(yo.datos.empresas[0].nombre, 'Panadería Renovada')
+
+        const email = `vend2-${sufijo}@test.cl`
+        const alta = await dueno.post('/equipo', { nombre: 'V2', email, rolId: rolId('vendedor') })
+        const l = await login(email, alta.datos.passwordTemporal)
+        const v = clienteDe(l.datos.accessToken, dueno.empresa)
+        assert.equal((await v.get('/empresa')).status, 200)
+        assert.equal((await v.patch('/empresa', { nombre: 'Hackeada' })).status, 403)
+    })
+
     test('otra empresa no puede tocar miembros ajenos', async () => {
         const otra = await nuevaEmpresa('equipo-otra')
         const miembro = (await dueno.get('/equipo')).datos.miembros[0]
