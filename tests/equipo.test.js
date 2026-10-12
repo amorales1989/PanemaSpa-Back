@@ -135,6 +135,39 @@ describe('desde la app (dueño y administrador)', () => {
         assert.equal((await v.patch('/empresa', { nombre: 'Hackeada' })).status, 403)
     })
 
+    test('eliminar del equipo: corta el acceso al instante y conserva el historial', async () => {
+        const cfg = (await dueno.get('/config')).datos
+        const prod = (await dueno.post('/productos', { nombre: `Pan ${sufijo}`, unidad: 'un', precio: 500 })).datos
+        const email = `chao-${sufijo}@test.cl`
+        const alta = await dueno.post('/equipo', { nombre: 'Se Va', email, rolId: rolId('encargado') })
+        const l = await login(email, alta.datos.passwordTemporal)
+        const c = clienteDe(l.datos.accessToken, dueno.empresa)
+        const venta = await c.post('/ventas', { canalId: cfg.canales[0].id, metodoPagoId: cfg.metodosPago[0].id, items: [{ productoId: prod.id, cantidad: 1 }] })
+        assert.equal(venta.status, 201)
+
+        assert.equal((await dueno.del(`/equipo/${alta.datos.membresiaId}`)).status, 204)
+        assert.equal((await c.get('/config')).status, 403)
+        assert.ok(!(await dueno.get('/equipo')).datos.miembros.some((m) => m.membresiaId === alta.datos.membresiaId))
+        // La venta sigue con el nombre de quien la registró
+        assert.equal((await dueno.get(`/ventas/${venta.datos.id}`)).datos.usuario, 'Se Va')
+    })
+
+    test('eliminar: no a sí mismo, no al dueño desde un administrador, no al último dueño', async () => {
+        const yo = (await dueno.get('/equipo')).datos.miembros.find((m) => m.usuarioId === dueno.usuarioId)
+        const propio = await dueno.del(`/equipo/${yo.membresiaId}`)
+        assert.equal(propio.status, 409)
+        assert.equal(propio.datos.codigo, 'PROPIA_CUENTA')
+
+        const email = `adm-del-${sufijo}@test.cl`
+        const alta = await dueno.post('/equipo', { nombre: 'Adm', email, rolId: rolId('administrador') })
+        const adm = clienteDe((await login(email, alta.datos.passwordTemporal)).datos.accessToken, dueno.empresa)
+        assert.equal((await adm.del(`/equipo/${yo.membresiaId}`)).status, 403)
+        // El superadmin tampoco puede dejar la empresa sin dueño
+        const r = await panel('DELETE', `/${yo.membresiaId}`)
+        assert.equal(r.status, 409)
+        assert.equal(r.datos.codigo, 'ULTIMO_DUENO')
+    })
+
     test('otra empresa no puede tocar miembros ajenos', async () => {
         const otra = await nuevaEmpresa('equipo-otra')
         const miembro = (await dueno.get('/equipo')).datos.miembros[0]

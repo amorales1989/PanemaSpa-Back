@@ -27,6 +27,7 @@ export function montar(router, ctrl, guardia = (req, res, next) => next()) {
     router.get('/', guardia, ctrl.listar)
     router.post('/', guardia, validar(esquemaAgregar), ctrl.agregar)
     router.patch('/:membresiaId', membresiaValida, guardia, validar(esquemaActualizar), ctrl.actualizar)
+    router.delete('/:membresiaId', membresiaValida, guardia, ctrl.eliminar)
     router.post('/:membresiaId/restablecer-password', membresiaValida, guardia, ctrl.restablecerPassword)
     return router
 }

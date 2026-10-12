@@ -82,7 +82,7 @@ Respuestas en camelCase. Las rutas `/v1/*` (salvo `/v1/auth/*`) requieren `Autho
 | PATCH | `/v1/admin/empresas/:id/suscripcion` | `{ planCodigo?, estado?, pruebaHasta?, periodoFin? }` |
 | GET | `/v1/admin/planes` | |
 | GET / POST | `/v1/admin/empresas/:id/usuarios` | miembros y roles / agregar `{ nombre, email, rolId }` → `passwordTemporal` (solo cuentas nuevas) |
-| PATCH | `/v1/admin/empresas/:id/usuarios/:membresiaId` | `{ rolId?, estado? }`; nunca deja la empresa sin dueño activo |
+| PATCH / DELETE | `/v1/admin/empresas/:id/usuarios/:membresiaId` | cambiar `{ rolId?, estado? }` o quitar del equipo (conserva su historial); nunca deja la empresa sin dueño activo |
 | POST | `/v1/admin/empresas/:id/usuarios/:membresiaId/restablecer-password` | contraseña temporal nueva y cierra sus sesiones |
 
 **Importar catálogo** (`POST /v1/importar/catalogo`): `{ aplicar, productos: [{ fila, codigo?, nombre, categoria?, unidad, precio, costo? }], insumos: [...], promos: [{ fila, codigo?, nombre, precio, productos: [{ codigo, cantidad }] }] }`. Todo en una transacción: con `aplicar: false` (o si alguna fila falla) se deshace y devuelve el resumen y los errores por fila. Reconoce lo existente por código o nombre y lo actualiza; las categorías nuevas se crean solas.

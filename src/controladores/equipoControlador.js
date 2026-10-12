@@ -15,6 +15,10 @@ function controlador({ superadmin }) {
         agregar: async (req, res) => res.status(201).json(await equipoServicio.agregar(actorDe(req, superadmin), empresaDe(req), req.body)),
         actualizar: async (req, res) =>
             res.json(await equipoServicio.actualizar(actorDe(req, superadmin), empresaDe(req), req.params.membresiaId, req.body)),
+        eliminar: async (req, res) => {
+            await equipoServicio.eliminar(actorDe(req, superadmin), empresaDe(req), req.params.membresiaId)
+            res.status(204).end()
+        },
         restablecerPassword: async (req, res) =>
             res.json(await equipoServicio.restablecerPassword(actorDe(req, superadmin), empresaDe(req), req.params.membresiaId)),
     }

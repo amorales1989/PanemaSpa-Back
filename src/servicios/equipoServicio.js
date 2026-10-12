@@ -101,3 +101,20 @@ export async function restablecerPassword(actor, empresaId, membresiaId) {
         return { passwordTemporal: temporal }
     })
 }
+
+// Eliminar del equipo: quita el acceso a esta empresa (nadie se elimina a sí mismo,
+// solo un dueño elimina dueños y siempre queda al menos un dueño activo)
+export function eliminar(actor, empresaId, membresiaId) {
+    return transaccion(async (db) => {
+        const m = await equipoRepositorio.membresia(db, empresaId, membresiaId)
+        if (!m) throw noEncontrado('Miembro no encontrado')
+        if (m.usuario_id === actor.usuarioId) throw conflicto('PROPIA_CUENTA', 'No puedes eliminar tu propio usuario')
+        if (m.rol_codigo === 'dueno' && !puedeTocarDuenos(actor)) throw sinPermiso('Solo un dueño puede eliminar a un dueño')
+        if (m.rol_codigo === 'dueno' && m.estado === 'activo' && (await equipoRepositorio.otrosDuenosActivos(db, empresaId, membresiaId)) === 0) {
+            throw conflicto('ULTIMO_DUENO', 'La empresa tiene que tener al menos un dueño activo')
+        }
+        await equipoRepositorio.quitarMiembro(db, membresiaId)
+        await auditar(db, actor, empresaId, 'equipo.eliminar', membresiaId, { usuarioId: m.usuario_id, rol: m.rol_codigo })
+        invalidarMembresia(m.usuario_id, empresaId) // pierde el acceso ya, aunque tenga la sesión abierta
+    })
+}
