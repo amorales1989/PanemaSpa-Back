@@ -223,6 +223,19 @@ describe('ventas', () => {
         assert.equal((await vendedor.get(`/ventas/${ajena.id}`)).status, 404)
     })
 
+    test('el vendedor solo ve las ventas de hoy (aunque pida otro rango)', async () => {
+        // "Ayer" en la zona horaria de la empresa (America/Santiago), no en UTC
+        const ayer = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date(Date.now() - 86400000))
+        const vieja = await vendedor.post('/ventas', { ...base(), fecha: ayer, items: [{ productoId: ids.medialuna, cantidad: 1 }] })
+        assert.equal(vieja.status, 201)
+        const lista = await vendedor.get(`/ventas?desde=2000-01-01&hasta=${ayer}`)
+        assert.ok(!lista.datos.datos.some((v) => v.id === vieja.datos.id))
+        assert.ok(lista.datos.datos.every((v) => v.fecha === lista.datos.datos[0].fecha))
+        assert.equal((await vendedor.get(`/ventas/${vieja.datos.id}`)).status, 404)
+        // El dueño sí la ve
+        assert.equal((await dueno.get(`/ventas/${vieja.datos.id}`)).status, 200)
+    })
+
     test('paginación con cursor', async () => {
         const p1 = await dueno.get('/ventas?limite=2')
         assert.equal(p1.datos.datos.length, 2)

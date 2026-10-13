@@ -6,7 +6,7 @@ import { auditar } from '../utilidades/auditoria.js'
 import { redondear } from '../utilidades/dinero.js'
 import { datosInvalidos, noEncontrado, sinPermiso } from '../utilidades/errores.js'
 import { tiene } from '../middlewares/permiso.js'
-import { resolverFecha, resolverSucursal, validarCantidad, verificarActivo, verificarAnulacion } from './movimientoComun.js'
+import { hoyEmpresa, resolverFecha, resolverSucursal, validarCantidad, verificarActivo, verificarAnulacion } from './movimientoComun.js'
 
 const redondear3 = (n) => Math.round(n * 1000) / 1000
 
@@ -59,7 +59,8 @@ async function armarLineas(db, req, items, fecha) {
     })
 }
 
-// Quien no ve las ventas de todos, solo ve las propias
+// Quien no ve las ventas de todos (ej. Vendedor) solo ve las propias y solo las de hoy
+// (en la zona horaria de la empresa). Se aplica en el servidor: lo demás ni siquiera llega al navegador.
 const soloPropias = (req) => !tiene(req, 'ventas.ver_todas')
 
 export const crear = (req, datos, clave) =>
@@ -89,13 +90,17 @@ export const crear = (req, datos, clave) =>
     })
 
 export const listar = (req, filtros) =>
-    conEmpresa(req.contexto, (db) =>
-        ventaRepositorio.listar(db, { ...filtros, usuarioId: soloPropias(req) ? req.usuario.id : filtros.usuarioId }))
+    conEmpresa(req.contexto, async (db) => {
+        if (!soloPropias(req)) return ventaRepositorio.listar(db, filtros)
+        const hoy = await hoyEmpresa(db, req.empresa.zonaHoraria)
+        return ventaRepositorio.listar(db, { ...filtros, desde: hoy, hasta: hoy, usuarioId: req.usuario.id })
+    })
 
 export const buscar = (req, id) =>
     conEmpresa(req.contexto, async (db) => {
         const venta = await ventaRepositorio.buscar(db, id)
-        if (!venta || (soloPropias(req) && venta.usuario_id !== req.usuario.id)) throw noEncontrado('Venta no encontrada')
+        const ajena = soloPropias(req) && (venta?.usuario_id !== req.usuario.id || venta?.fecha !== (await hoyEmpresa(db, req.empresa.zonaHoraria)))
+        if (!venta || ajena) throw noEncontrado('Venta no encontrada')
         return venta
     })
 
