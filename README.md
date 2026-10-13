@@ -89,7 +89,7 @@ Respuestas en camelCase. Las rutas `/v1/*` (salvo `/v1/auth/*`) requieren `Autho
 
 **Proveedores** (`/v1/proveedores`, ver: proveedores.ver · editar: proveedores.gestionar): directorio con RUT validado (dígito verificador), contacto, teléfono, email, dirección y notas. Cuentas bancarias en `/v1/proveedores/:id/cuentas[/:cuentaId]` (banco, tipo, número, titular, RUT, email, principal). Los cambios en las cuentas se auditan. Cada proveedor incluye `ultimaCompra` y `comprado90d`.
 
-**Empresa** (`/v1/empresa`): GET para cualquier miembro, PATCH `{ nombre?, razonSocial?, rut? }` con configuracion.gestionar. Nunca incluye plan ni suscripción.
+**Empresa** (`/v1/empresa`): GET para cualquier miembro, PATCH `{ nombre?, razonSocial?, rut? }` con configuracion.gestionar. Logo: PUT `/v1/empresa/logo` `{ imagen: "data:image/png;base64,..." }` (PNG o JPEG) y DELETE. Nunca incluye plan ni suscripción.
 
 **Equipo** (desde la app, permiso usuarios.gestionar): mismas rutas en `/v1/equipo`. Solo un dueño puede nombrar o modificar dueños, y nadie puede cambiar su propio rol. Las cuentas nuevas quedan con `debeCambiarPassword: true` y el front pide cambiar la contraseña en el primer ingreso.
 

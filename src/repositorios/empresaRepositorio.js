@@ -72,3 +72,5 @@ export const actualizarDatos = async (db, id, { nombre, razonSocial, rut }) =>
          where id = $1 and deleted_at is null returning ${DATOS_EMPRESA}`,
         [id, nombre ?? null, razonSocial !== undefined, razonSocial ?? null, rut !== undefined, rut ?? null],
     )).rows[0] ?? null
+
+export const ponerLogo = (db, id, url) => db.query('update empresas set logo_url = $2 where id = $1', [id, url])

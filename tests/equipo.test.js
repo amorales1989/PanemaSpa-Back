@@ -168,6 +168,21 @@ describe('desde la app (dueño y administrador)', () => {
         assert.equal(r.datos.codigo, 'ULTIMO_DUENO')
     })
 
+    test('logo de la empresa: PNG o JPEG, aparece en /yo y se puede quitar', async () => {
+        const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]).toString('base64')
+        const r = await dueno.put('/empresa/logo', { imagen: `data:image/png;base64,${png}` })
+        assert.equal(r.status, 200)
+        assert.match(r.datos.logoUrl, /^\/uploads\/.+\/logo-[0-9a-f]+\.png$/)
+        assert.equal((await pedir(r.datos.logoUrl)).status, 200)
+        const yo = await pedir('/v1/auth/yo', { token: dueno.token })
+        assert.equal(yo.datos.empresas.find((e) => e.id === dueno.empresa).logoUrl, r.datos.logoUrl)
+        const webp = Buffer.from('RIFF0000WEBP').toString('base64')
+        assert.equal((await dueno.put('/empresa/logo', { imagen: `data:image/webp;base64,${webp}` })).status, 400)
+        const q = await dueno.del('/empresa/logo')
+        assert.equal(q.datos.logoUrl, null)
+        assert.equal((await pedir(r.datos.logoUrl)).status, 404)
+    })
+
     test('otra empresa no puede tocar miembros ajenos', async () => {
         const otra = await nuevaEmpresa('equipo-otra')
         const miembro = (await dueno.get('/equipo')).datos.miembros[0]
