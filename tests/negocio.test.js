@@ -33,6 +33,20 @@ describe('configuración', () => {
         assert.equal(off.datos.activo, false)
     })
 
+    test('eliminar opciones: sin uso se borra; en uso, la imprescindible y la de insumos no', async () => {
+        const nueva = await dueno.post('/config/categorias', { nombre: 'nuevo', ambito: 'egreso' })
+        const borrada = await dueno.del(`/config/categorias/${nueva.datos.id}`)
+        assert.equal(borrada.status, 200)
+        assert.equal(borrada.datos.archivada, false)
+        assert.ok(!(await dueno.get('/config')).datos.categorias.egreso.some((c) => c.nombre === 'nuevo'))
+
+        const insumos = cfg.categorias.egreso.find((c) => c.conItems)
+        assert.equal((await dueno.del(`/config/categorias/${insumos.id}`)).datos.codigo, 'CATEGORIA_INSUMOS')
+        const local = cfg.sucursales[0]
+        assert.equal((await dueno.del(`/config/sucursales/${local.id}`)).datos.codigo, 'ULTIMA_OPCION')
+        assert.equal((await vendedor.del(`/config/canales/${cfg.canales[0].id}`)).status, 403)
+    })
+
     test('lista inexistente → 404, vendedor sin permiso → 403', async () => {
         assert.equal((await dueno.post('/config/inventadas', { nombre: 'x' })).status, 404)
         assert.equal((await dueno.post('/config/constructor', { nombre: 'x' })).status, 404)
@@ -270,6 +284,24 @@ describe('ventas', () => {
         assert.equal((await dueno.post(`/ventas/${ids.venta1}/anular`, { motivo: 'otra vez' })).status, 409)
         const confirmadas = await dueno.get('/ventas')
         assert.ok(!confirmadas.datos.datos.some((v) => v.id === ids.venta1))
+    })
+})
+
+describe('eliminar opciones en uso', () => {
+    test('un canal con ventas se archiva: desaparece, las ventas lo conservan y el nombre se puede reusar', async () => {
+        const mostrador = cfg.canales.find((c) => c.nombre === 'Mostrador')
+        const venta = (await dueno.get('/ventas?limite=1')).datos.datos[0]
+        assert.equal(venta.canal, 'Mostrador')
+        const r = await dueno.del(`/config/canales/${mostrador.id}`)
+        assert.equal(r.status, 200)
+        assert.equal(r.datos.archivada, true)
+        assert.ok(!(await dueno.get('/config')).datos.canales.some((c) => c.id === mostrador.id))
+        assert.equal((await dueno.get(`/ventas/${venta.id}`)).datos.canal, 'Mostrador')
+        // Ya no se puede usar en ventas nuevas
+        const nueva = await dueno.post('/ventas', { canalId: mostrador.id, metodoPagoId: cfg.metodosPago[0].id, items: [{ productoId: ids.cafe, cantidad: 1 }] })
+        assert.equal(nueva.status, 400)
+        // Y el nombre queda libre para crear uno nuevo
+        assert.equal((await dueno.post('/config/canales', { nombre: 'Mostrador' })).status, 201)
     })
 })
 

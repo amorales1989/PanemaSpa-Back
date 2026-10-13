@@ -23,8 +23,8 @@ const SELECT = `
              where e.proveedor_id = p.id and e.estado = 'confirmado' and e.fecha >= current_date - 89) as comprado_90d
     from proveedores p`
 
-export const listar = async (db) => (await db.query(`${SELECT} order by p.activo desc, lower(p.nombre)`)).rows
-export const buscar = async (db, id) => (await db.query(`${SELECT} where p.id = $1`, [id])).rows[0] ?? null
+export const listar = async (db) => (await db.query(`${SELECT} where p.deleted_at is null order by p.activo desc, lower(p.nombre)`)).rows
+export const buscar = async (db, id) => (await db.query(`${SELECT} where p.id = $1 and p.deleted_at is null`, [id])).rows[0] ?? null
 
 export async function crear(db, empresaId, d) {
     const presentes = Object.keys(CAMPOS).filter((c) => d[c] !== undefined)

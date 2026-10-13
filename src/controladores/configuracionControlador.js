@@ -8,6 +8,11 @@ export const crear = async (req, res) => {
     res.status(201).json(await configuracionServicio.crear(req.contexto, req.params.lista, req.body))
 }
 
+export const eliminar = async (req, res) => {
+    // { archivada: true } si ya se usaba en registros (borrado lógico)
+    res.json(await configuracionServicio.eliminar(req.contexto, req.params.lista, req.params.id))
+}
+
 export const actualizar = async (req, res) => {
     res.json(await configuracionServicio.actualizar(req.contexto, req.params.lista, req.params.id, req.body))
 }

@@ -47,5 +47,9 @@ function validarLista(parcial) {
 router.get('/', configuracionControlador.obtener)
 router.post('/:lista', validarLista(false), permisoDe, configuracionControlador.crear)
 router.patch('/:lista/:id', idValido, validarLista(true), permisoDe, configuracionControlador.actualizar)
+router.delete('/:lista/:id', idValido, (req, res, next) => {
+    if (!Object.hasOwn(ESQUEMAS, req.params.lista)) throw noEncontrado('Lista inexistente')
+    next()
+}, permisoDe, configuracionControlador.eliminar)
 
 export default router

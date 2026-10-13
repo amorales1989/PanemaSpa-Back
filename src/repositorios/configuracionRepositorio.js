@@ -43,7 +43,7 @@ export const LISTAS = {
 
 export const listar = async (db, lista) => {
     const { tabla, columnas, orden } = LISTAS[lista]
-    const { rows } = await db.query(`select ${columnas} from ${tabla} order by ${orden}`)
+    const { rows } = await db.query(`select ${columnas} from ${tabla} where deleted_at is null order by ${orden}`)
     return rows
 }
 
@@ -70,13 +70,13 @@ export const actualizar = async (db, lista, id, cambios) => {
     const { tabla, columnas, campos } = LISTAS[lista]
     const { set, valores } = armarSet(cambios, campos, 2)
     if (!set) return buscar(db, lista, id)
-    const { rows } = await db.query(`update ${tabla} set ${set} where id = $1 returning ${columnas}`, [id, ...valores])
+    const { rows } = await db.query(`update ${tabla} set ${set} where id = $1 and deleted_at is null returning ${columnas}`, [id, ...valores])
     return rows[0] ?? null
 }
 
 export const buscar = async (db, lista, id) => {
     const { tabla, columnas } = LISTAS[lista]
-    const { rows } = await db.query(`select ${columnas} from ${tabla} where id = $1`, [id])
+    const { rows } = await db.query(`select ${columnas} from ${tabla} where id = $1 and deleted_at is null`, [id])
     return rows[0] ?? null
 }
 
@@ -84,14 +84,31 @@ export const buscar = async (db, lista, id) => {
 // Las compras lo mandan como texto libre, igual que hoy en el front.
 export async function proveedorPorNombre(db, empresaId, nombre) {
     const { rows } = await db.query(
-        `with existente as (select id from proveedores where lower(nombre) = lower($2) limit 1),
+        `with existente as (select id from proveedores where lower(nombre) = lower($2) and deleted_at is null limit 1),
               nuevo as (
                 insert into proveedores (empresa_id, nombre)
                 select $1, $2 where not exists (select 1 from existente)
-                on conflict (empresa_id, nombre) do update set nombre = excluded.nombre
+                on conflict (empresa_id, (lower(nombre))) where deleted_at is null do update set nombre = proveedores.nombre
                 returning id)
          select id from existente union all select id from nuevo`,
         [empresaId, nombre],
     )
     return rows[0].id
+}
+
+export const eliminar = async (db, lista, id) =>
+    (await db.query(`delete from ${LISTAS[lista].tabla} where id = $1`, [id])).rowCount
+
+// Borrado lógico: deja de aparecer, pero los registros que la usan la siguen mostrando
+export const archivar = async (db, lista, id) => {
+    const activo = lista === 'categorias' || lista === 'sucursales' ? 'activa' : 'activo'
+    return (await db.query(`update ${LISTAS[lista].tabla} set deleted_at = now(), ${activo} = false where id = $1`, [id])).rowCount
+}
+
+// Cuántas opciones activas quedan sin contar esta (para no dejar la lista vacía)
+export async function otrasActivas(db, lista, id) {
+    const { tabla } = LISTAS[lista]
+    const activo = lista === 'categorias' || lista === 'sucursales' ? 'activa' : 'activo'
+    const { rows } = await db.query(`select count(*)::int as n from ${tabla} where id <> $1 and ${activo} and deleted_at is null`, [id])
+    return rows[0].n
 }

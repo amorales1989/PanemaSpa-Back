@@ -16,12 +16,12 @@ export async function siguienteCodigo(db, tabla) {
 // El formulario del catálogo permite escribir una categoría nueva al crear el producto.
 export async function categoriaPorNombre(db, empresaId, ambito, nombre) {
     const { rows } = await db.query(
-        `with existente as (select id from categorias where ambito = $2 and lower(nombre) = lower($3) limit 1),
+        `with existente as (select id from categorias where ambito = $2 and lower(nombre) = lower($3) and deleted_at is null limit 1),
               nueva as (
                 insert into categorias (empresa_id, ambito, nombre, orden)
                 select $1, $2, $3, coalesce((select max(orden) + 1 from categorias where ambito = $2), 0)
                 where not exists (select 1 from existente)
-                on conflict (empresa_id, ambito, nombre) do update set nombre = excluded.nombre
+                on conflict (empresa_id, ambito, (lower(nombre))) where deleted_at is null do update set nombre = categorias.nombre
                 returning id)
          select id from existente union all select id from nueva`,
         [empresaId, ambito, nombre],
