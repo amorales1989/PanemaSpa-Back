@@ -7,11 +7,13 @@ export async function hoyEmpresa(db, zonaHoraria) {
     return rows[0].hoy
 }
 
-// Fecha del registro: la enviada (no futura) o hoy
+// Fecha del registro: la enviada (no futura) o hoy.
+// Una fecha anterior requiere el permiso movimientos.fecha_anterior (el Vendedor registra siempre hoy).
 export async function resolverFecha(db, req, fecha) {
     const hoy = await hoyEmpresa(db, req.empresa.zonaHoraria)
-    if (!fecha) return hoy
+    if (!fecha || fecha === hoy) return hoy
     if (fecha > hoy) throw datosInvalidos({ fecha: ['No puede ser una fecha futura'] })
+    if (!req.permisos.has('movimientos.fecha_anterior')) throw sinPermiso('No tienes permiso para registrar con una fecha anterior')
     return fecha
 }
 

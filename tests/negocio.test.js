@@ -1,7 +1,7 @@
 // Fase 4: configuración, catálogo y movimientos
 import { after, before, describe, test } from 'node:test'
 import assert from 'node:assert/strict'
-import { iniciar, miembro, nuevaEmpresa, pedir, terminar } from './ayudantes.js'
+import { iniciar, miembro, nuevaEmpresa, pedir, pool, terminar } from './ayudantes.js'
 
 let dueno     // dueño de la empresa A
 let vendedor  // vendedor de la empresa A
@@ -202,6 +202,13 @@ describe('ventas', () => {
         assert.equal(r2.datos.id, r1.datos.id)
     })
 
+    test('el dueño sí puede registrar con una fecha anterior', async () => {
+        const ayer = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date(Date.now() - 86400000))
+        const r = await dueno.post('/ventas', { ...base(), fecha: ayer, items: [{ productoId: ids.cafe, cantidad: 1 }] })
+        assert.equal(r.status, 201)
+        assert.equal(r.datos.fecha, ayer)
+    })
+
     test('validaciones: cantidad no entera en unidades, producto ajeno, fecha futura', async () => {
         assert.equal((await dueno.post('/ventas', { ...base(), items: [{ productoId: ids.medialuna, cantidad: 1.5 }] })).status, 400)
         const ajeno = await otra.post('/ventas', {
@@ -226,8 +233,18 @@ describe('ventas', () => {
     test('el vendedor solo ve las ventas de hoy (aunque pida otro rango)', async () => {
         // "Ayer" en la zona horaria de la empresa (America/Santiago), no en UTC
         const ayer = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date(Date.now() - 86400000))
-        const vieja = await vendedor.post('/ventas', { ...base(), fecha: ayer, items: [{ productoId: ids.medialuna, cantidad: 1 }] })
+        // El vendedor no puede registrar con otra fecha…
+        const conFecha = await vendedor.post('/ventas', { ...base(), fecha: ayer, items: [{ productoId: ids.medialuna, cantidad: 1 }] })
+        assert.equal(conFecha.status, 403)
+        // …así que se simula una venta suya de ayer moviendo la fecha en la base
+        const vieja = await vendedor.post('/ventas', { ...base(), items: [{ productoId: ids.medialuna, cantidad: 1 }] })
         assert.equal(vieja.status, 201)
+        const cliente = await pool.connect()
+        await cliente.query('begin')
+        await cliente.query("select set_config('app.empresa_id', $1, true)", [dueno.empresa]) // RLS: hay que indicar la empresa
+        await cliente.query('update ventas set fecha = $2 where id = $1', [vieja.datos.id, ayer])
+        await cliente.query('commit')
+        cliente.release()
         const lista = await vendedor.get(`/ventas?desde=2000-01-01&hasta=${ayer}`)
         assert.ok(!lista.datos.datos.some((v) => v.id === vieja.datos.id))
         assert.ok(lista.datos.datos.every((v) => v.fecha === lista.datos.datos[0].fecha))
