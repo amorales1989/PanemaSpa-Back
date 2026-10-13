@@ -183,6 +183,38 @@ describe('desde la app (dueño y administrador)', () => {
         assert.equal((await pedir(r.datos.logoUrl)).status, 404)
     })
 
+    test('editar nombre y email: de otro miembro y de uno mismo; email repetido avisa', async () => {
+        const email = `editable-${sufijo}@test.cl`
+        const alta = await dueno.post('/equipo', { nombre: 'Nombre Mal Escrito', email, rolId: rolId('vendedor') })
+        const r = await dueno.patch(`/equipo/${alta.datos.membresiaId}`, { nombre: 'Nombre Correcto', email: `corregido-${sufijo}@test.cl` })
+        assert.equal(r.status, 200, JSON.stringify(r.datos))
+        assert.equal(r.datos.nombre, 'Nombre Correcto')
+        assert.equal(r.datos.email, `corregido-${sufijo}@test.cl`)
+        assert.equal((await login(`corregido-${sufijo}@test.cl`, alta.datos.passwordTemporal)).status, 200)
+
+        const yo = (await dueno.get('/equipo')).datos.miembros.find((m) => m.usuarioId === dueno.usuarioId)
+        const propio = await dueno.patch(`/equipo/${yo.membresiaId}`, { nombre: 'Dueña Renombrada' })
+        assert.equal(propio.status, 200)
+        assert.equal(propio.datos.nombre, 'Dueña Renombrada')
+        assert.equal((await dueno.patch(`/equipo/${yo.membresiaId}`, { rolId: rolId('vendedor') })).status, 409)
+
+        const repetido = await dueno.patch(`/equipo/${alta.datos.membresiaId}`, { email: `corregido-${sufijo}@test.cl`.replace('corregido', 'chao') })
+        assert.ok([200, 409].includes(repetido.status))
+        const choca = await dueno.patch(`/equipo/${alta.datos.membresiaId}`, { email: (await pedir('/v1/auth/yo', { token: admin.token })).datos.usuario.email })
+        assert.equal(choca.status, 409)
+        assert.equal(choca.datos.codigo, 'EMAIL_EN_USO')
+    })
+
+    test('no se cambian nombre ni email de quien usa su cuenta en otras empresas', async () => {
+        // La cuenta del admin ya está en este equipo (test anterior) y además en su propia empresa
+        const emailAdmin = (await pedir('/v1/auth/yo', { token: admin.token })).datos.usuario.email
+        const miembro = (await dueno.get('/equipo')).datos.miembros.find((m) => m.email === emailAdmin)
+            ?? (await dueno.post('/equipo', { nombre: 'X', email: emailAdmin, rolId: rolId('contador') })).datos
+        const r = await dueno.patch(`/equipo/${miembro.membresiaId}`, { nombre: 'Otro nombre' })
+        assert.equal(r.status, 409)
+        assert.equal(r.datos.codigo, 'OTRAS_EMPRESAS')
+    })
+
     test('otra empresa no puede tocar miembros ajenos', async () => {
         const otra = await nuevaEmpresa('equipo-otra')
         const miembro = (await dueno.get('/equipo')).datos.miembros[0]

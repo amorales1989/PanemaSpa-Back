@@ -96,3 +96,11 @@ export const ponerPasswordTemporal = async (db, usuarioId, passwordHash) => {
 // Quita el acceso a la empresa. El usuario (y sus ventas, compras y mermas) se conserva.
 export const quitarMiembro = async (db, membresiaId) =>
     (await db.query('delete from empresa_usuarios where id = $1', [membresiaId])).rowCount
+
+// Nombre y email de la cuenta (es global: se usa en todas sus empresas)
+export async function actualizarUsuario(db, usuarioId, { nombre, email }) {
+    await db.query(
+        'update usuarios set nombre = coalesce($2, nombre), email = coalesce($3, email) where id = $1',
+        [usuarioId, nombre ?? null, email ?? null],
+    )
+}

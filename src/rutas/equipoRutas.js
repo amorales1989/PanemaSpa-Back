@@ -14,7 +14,9 @@ export const esquemaAgregar = z.object({
 export const esquemaActualizar = z.object({
     rolId: uuid.optional(),
     estado: z.enum(['activo', 'suspendido']).optional(),
-}).refine((d) => d.rolId || d.estado, 'No hay cambios')
+    nombre: texto(100).optional(),
+    email: z.string().trim().toLowerCase().email('Email inválido').max(200).optional(),
+}).refine((d) => d.rolId || d.estado || d.nombre || d.email, 'No hay cambios')
 
 const esquemaMembresia = z.object({ membresiaId: z.string().uuid() })
 export const membresiaValida = (req, res, next) => {

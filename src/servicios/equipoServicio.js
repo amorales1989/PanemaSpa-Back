@@ -56,12 +56,33 @@ export async function agregar(actor, empresaId, { nombre, email, rolId }) {
     })
 }
 
-export function actualizar(actor, empresaId, membresiaId, { rolId, estado }) {
+export function actualizar(actor, empresaId, membresiaId, { rolId, estado, nombre, email }) {
     return transaccion(async (db) => {
         const m = await equipoRepositorio.membresia(db, empresaId, membresiaId)
         if (!m) throw noEncontrado('Miembro no encontrado')
-        if (m.usuario_id === actor.usuarioId && !actor.superadmin) {
+        const propia = m.usuario_id === actor.usuarioId
+        // Los datos propios (nombre, email) sí se editan; el rol y el estado propios no
+        if (propia && (rolId || estado) && !actor.superadmin) {
             throw conflicto('PROPIA_CUENTA', 'No puedes cambiar tu propio rol ni suspenderte')
+        }
+        if (m.rol_codigo === 'dueno' && !propia && (nombre || email) && !puedeTocarDuenos(actor)) {
+            throw sinPermiso('Solo un dueño puede modificar a un dueño')
+        }
+        // Nombre y email son de la cuenta: si la usa en otras empresas, cambiarlos las afectaría
+        if ((nombre || email) && !propia && !actor.superadmin && !(await equipoRepositorio.soloEnEstaEmpresa(db, m.usuario_id, empresaId))) {
+            throw conflicto('OTRAS_EMPRESAS', 'Esta persona usa su cuenta en otras empresas: solo ella puede cambiar su nombre o email')
+        }
+        if (nombre || email) {
+            try {
+                await db.query('savepoint datos_usuario')
+                await equipoRepositorio.actualizarUsuario(db, m.usuario_id, { nombre, email })
+            } catch (error) {
+                if (error.code === '23505') {
+                    await db.query('rollback to savepoint datos_usuario')
+                    throw conflicto('EMAIL_EN_USO', 'Ese email ya lo usa otra cuenta')
+                }
+                throw error
+            }
         }
         const nuevoRol = rolId ? await equipoRepositorio.rol(db, empresaId, rolId) : null
         if (rolId && !nuevoRol) throw datosInvalidos({ rolId: ['Rol inválido'] })
@@ -76,8 +97,8 @@ export function actualizar(actor, empresaId, membresiaId, { rolId, estado }) {
             throw conflicto('ULTIMO_DUENO', 'La empresa tiene que tener al menos un dueño activo')
         }
 
-        await equipoRepositorio.actualizarMiembro(db, membresiaId, { rolId, estado })
-        await auditar(db, actor, empresaId, 'equipo.actualizar', membresiaId, { rol: nuevoRol?.codigo, estado })
+        if (rolId || estado) await equipoRepositorio.actualizarMiembro(db, membresiaId, { rolId, estado })
+        await auditar(db, actor, empresaId, 'equipo.actualizar', membresiaId, { rol: nuevoRol?.codigo, estado, nombre, email })
         invalidarMembresia(m.usuario_id, empresaId) // el cambio aplica ya, no en 60 s
         return (await equipoRepositorio.listar(db, empresaId)).find((x) => x.membresia_id === membresiaId)
     })
