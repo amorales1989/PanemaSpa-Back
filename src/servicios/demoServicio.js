@@ -193,6 +193,22 @@ function generarEgresos({ categorias, insumos, proveedores, metodos }, dias, hoy
         }
     }
 
+    // Negocio de reventa (sin insumos): compras de mercadería sin detalle, ~45% de lo vendido
+    const mercaderia = categorias.find((c) => !c.con_items && /mercader|reposici/i.test(c.nombre))
+    if (mercaderia && !(compras && insumos.length)) {
+        let acumulado = 0
+        for (let k = 0; k < dias; k++) {
+            const fecha = sumarDias(hoy, k - dias + 1)
+            acumulado += ventasPorDia.get(fecha) ?? 0
+            if (diaSemana(fecha) !== 2 || acumulado === 0) continue
+            agregar(fecha, mercaderia, montoRedondo(acumulado * azar(0.4, 0.5), dec), 'Reposición de mercadería', {
+                proveedor_id: proveedores.length ? proveedores[entero(0, proveedores.length - 1)].id : null,
+                metodo_pago_id: otroMetodo().id,
+            })
+            acumulado = 0
+        }
+    }
+
     // Fijos mensuales y algunos gastos variables
     const promedioMensual = ([...ventasPorDia.values()].reduce((t, x) => t + x, 0) / Math.max(1, ventasPorDia.size)) * 30
     const fijos = GASTOS_FIJOS.map((g) => ({ ...g, categoria: categorias.find((c) => !c.con_items && g.patron.test(c.nombre)) })).filter((g) => g.categoria)
