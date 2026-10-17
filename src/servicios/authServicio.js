@@ -5,7 +5,6 @@ import * as sesionRepositorio from '../repositorios/sesionRepositorio.js'
 import * as empresaRepositorio from '../repositorios/empresaRepositorio.js'
 import { DIAS_REFRESH, firmarAcceso, hashToken, tokenAleatorio } from '../utilidades/tokens.js'
 import { ErrorApi, conflicto, noAutenticado } from '../utilidades/errores.js'
-import { slugificar } from '../utilidades/texto.js'
 import { logger } from '../utilidades/logger.js'
 
 // Hash de relleno: si el email no existe igual se verifica algo, para que el
@@ -20,16 +19,6 @@ async function emitirSesion(db, usuarioId, { userAgent, ip }) {
     return { accessToken: await firmarAcceso(usuarioId, sesionId), refreshToken }
 }
 
-async function slugLibre(db, nombre) {
-    const base = slugificar(nombre)
-    if (!(await empresaRepositorio.slugExiste(db, base))) return base
-    for (let i = 2; i < 100; i++) {
-        const candidato = `${base}-${i}`
-        if (!(await empresaRepositorio.slugExiste(db, candidato))) return candidato
-    }
-    return `${base}-${Date.now().toString(36)}`
-}
-
 // Alta de un negocio nuevo: usuario dueño + empresa lista para usar + prueba de 14 días
 export async function registrar({ nombre, email, password, nombreEmpresa }, cliente) {
     const passwordHash = await argon2.hash(password)
@@ -38,7 +27,7 @@ export async function registrar({ nombre, email, password, nombreEmpresa }, clie
             throw conflicto('EMAIL_REGISTRADO', 'Ya existe una cuenta con ese email. Inicia sesión.')
         }
         const usuario = await usuarioRepositorio.crear(db, { email, nombre, passwordHash })
-        const empresa = await empresaRepositorio.crear(db, { nombre: nombreEmpresa, slug: await slugLibre(db, nombreEmpresa) })
+        const empresa = await empresaRepositorio.crear(db, { nombre: nombreEmpresa, slug: await empresaRepositorio.slugLibre(db, nombreEmpresa) })
         await empresaRepositorio.agregarMiembro(db, { empresaId: empresa.id, usuarioId: usuario.id, rolCodigo: 'dueno' })
         await empresaRepositorio.inicializar(db, empresa.id)
         await empresaRepositorio.crearSuscripcionPrueba(db, empresa.id)

@@ -12,24 +12,28 @@ const SUSCRIPCION_ACTUAL = `
     ) s on true
     left join planes p on p.id = s.plan_id`
 
+// Las demos no cuentan: sus ventas son inventadas
+const REAL = 'deleted_at is null and not es_demo'
+const DE_EMPRESA_REAL = `empresa_id in (select id from empresas where ${REAL})`
+
 export async function resumen() {
     const { rows } = await db().query(`
         select
-            (select count(*) from empresas where deleted_at is null) as empresas,
-            (select count(*) from empresas where deleted_at is null and estado = 'activa') as activas,
-            (select count(*) from empresas where deleted_at is null and estado = 'suspendida') as suspendidas,
-            (select count(*) from empresas where deleted_at is null and created_at >= now() - interval '30 days') as nuevas_30d,
+            (select count(*) from empresas where ${REAL}) as empresas,
+            (select count(*) from empresas where ${REAL} and estado = 'activa') as activas,
+            (select count(*) from empresas where ${REAL} and estado = 'suspendida') as suspendidas,
+            (select count(*) from empresas where ${REAL} and created_at >= now() - interval '30 days') as nuevas_30d,
             (select count(*) from usuarios where activo) as usuarios,
             (select count(*) from suscripciones where estado = 'prueba') as en_prueba,
             (select count(*) from suscripciones where estado = 'prueba' and prueba_hasta <= current_date + 7) as pruebas_por_vencer,
-            (select count(*) from ventas where estado = 'confirmada' and fecha >= current_date - 29) as ventas_30d,
-            (select coalesce(sum(total), 0) from ventas where estado = 'confirmada' and fecha >= current_date - 29) as monto_30d`)
+            (select count(*) from ventas where estado = 'confirmada' and fecha >= current_date - 29 and ${DE_EMPRESA_REAL}) as ventas_30d,
+            (select coalesce(sum(total), 0) from ventas where estado = 'confirmada' and fecha >= current_date - 29 and ${DE_EMPRESA_REAL}) as monto_30d`)
     return rows[0]
 }
 
 export async function listarEmpresas({ buscar, estado }) {
     const { rows } = await db().query(
-        `select e.id, e.nombre, e.slug, e.estado, e.moneda, e.created_at,
+        `select e.id, e.nombre, e.slug, e.estado, e.moneda, e.created_at, e.es_demo,
                 p.codigo as plan_codigo, p.nombre as plan, s.estado as suscripcion, s.prueba_hasta, s.periodo_fin,
                 coalesce(p.codigo = 'fundador', false) as fundadora,
                 (select count(*) from empresa_usuarios eu where eu.empresa_id = e.id and eu.estado = 'activo') as usuarios,
@@ -54,7 +58,7 @@ export async function listarEmpresas({ buscar, estado }) {
                 or exists (select 1 from empresa_usuarios eu join usuarios u on u.id = eu.usuario_id
                            where eu.empresa_id = e.id and u.email ilike '%' || $1 || '%'))
            and ($2::text is null or e.estado = $2)
-         order by coalesce(p.codigo = 'fundador', false) desc, e.created_at desc`,
+         order by coalesce(p.codigo = 'fundador', false) desc, e.es_demo, e.created_at desc`,
         [buscar ?? null, estado ?? null],
     )
     return rows
@@ -62,7 +66,10 @@ export async function listarEmpresas({ buscar, estado }) {
 
 export async function buscarEmpresa(id) {
     const { rows } = await db().query(
-        `select e.id, e.nombre, e.razon_social, e.rut, e.slug, e.estado, e.moneda, e.zona_horaria, e.created_at,
+        `select e.id, e.nombre, e.razon_social, e.rut, e.slug, e.estado, e.moneda, e.zona_horaria, e.created_at, e.es_demo,
+                (select count(*) from egresos where empresa_id = e.id and estado = 'confirmado') as egresos,
+                (select count(*) from mermas where empresa_id = e.id and estado = 'confirmada') as mermas,
+                (select min(fecha) from ventas where empresa_id = e.id) as primera_venta,
                 s.id as suscripcion_id, p.codigo as plan_codigo, p.nombre as plan, s.estado as suscripcion,
                 s.prueba_hasta, s.periodo_inicio, s.periodo_fin, coalesce(p.codigo = 'fundador', false) as fundadora,
                 (select count(*) from productos where empresa_id = e.id and deleted_at is null) as productos,

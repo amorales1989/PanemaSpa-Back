@@ -1,0 +1,51 @@
+// Catálogo de ejemplo para una demo nueva (panadería y cafetería).
+// Las categorías son las que crea inicializar_empresa(). Después se edita desde la app
+// o se reemplaza importando la planilla del cliente.
+export const CATALOGO_DEMO = {
+    productos: [
+        { nombre: 'Marraqueta', categoria: 'Panes', unidad: 'kg', precio: 2990, costo: 1100 },
+        { nombre: 'Hallulla', categoria: 'Panes', unidad: 'kg', precio: 2990, costo: 1050 },
+        { nombre: 'Pan amasado', categoria: 'Panes', unidad: 'un', precio: 450, costo: 150 },
+        { nombre: 'Pan integral', categoria: 'Panes', unidad: 'kg', precio: 3490, costo: 1400 },
+        { nombre: 'Baguette', categoria: 'Panes', unidad: 'un', precio: 1490, costo: 520 },
+        { nombre: 'Dobladitas', categoria: 'Panes', unidad: 'kg', precio: 3290, costo: 1200 },
+        { nombre: 'Medialuna', categoria: 'Pastelería', unidad: 'un', precio: 900, costo: 300 },
+        { nombre: 'Berlín', categoria: 'Pastelería', unidad: 'un', precio: 1200, costo: 420 },
+        { nombre: 'Kuchen de manzana (trozo)', categoria: 'Pastelería', unidad: 'un', precio: 2200, costo: 800 },
+        { nombre: 'Brownie', categoria: 'Pastelería', unidad: 'un', precio: 1500, costo: 500 },
+        { nombre: 'Empanada de queso', categoria: 'Pastelería', unidad: 'un', precio: 1800, costo: 650 },
+        { nombre: 'Alfajor', categoria: 'Pastelería', unidad: 'un', precio: 1000, costo: 350 },
+        { nombre: 'Torta tres leches', categoria: 'Tortas', unidad: 'un', precio: 18990, costo: 7200 },
+        { nombre: 'Torta mil hojas', categoria: 'Tortas', unidad: 'un', precio: 21990, costo: 8500 },
+        { nombre: 'Trozo de torta', categoria: 'Tortas', unidad: 'un', precio: 2990, costo: 1000 },
+        { nombre: 'Café americano', categoria: 'Cafetería', unidad: 'un', precio: 1800, costo: 350 },
+        { nombre: 'Cappuccino', categoria: 'Cafetería', unidad: 'un', precio: 2500, costo: 600 },
+        { nombre: 'Té', categoria: 'Cafetería', unidad: 'un', precio: 1200, costo: 200 },
+        { nombre: 'Jugo natural', categoria: 'Cafetería', unidad: 'un', precio: 2500, costo: 900 },
+        { nombre: 'Sándwich ave palta', categoria: 'Cafetería', unidad: 'un', precio: 3990, costo: 1600 },
+    ],
+    insumos: [
+        { nombre: 'Harina', categoria: 'Secos', unidad: 'kg', precio: 1100 },
+        { nombre: 'Azúcar', categoria: 'Secos', unidad: 'kg', precio: 1200 },
+        { nombre: 'Levadura', categoria: 'Secos', unidad: 'kg', precio: 6500 },
+        { nombre: 'Mantequilla', categoria: 'Lácteos y huevos', unidad: 'kg', precio: 9500 },
+        { nombre: 'Leche', categoria: 'Lácteos y huevos', unidad: 'lt', precio: 1050 },
+        { nombre: 'Huevos', categoria: 'Lácteos y huevos', unidad: 'un', precio: 180 },
+        { nombre: 'Manjar', categoria: 'Frutas y rellenos', unidad: 'kg', precio: 4200 },
+        { nombre: 'Palta', categoria: 'Frutas y rellenos', unidad: 'kg', precio: 4500 },
+        { nombre: 'Café en grano', categoria: 'Cafetería', unidad: 'kg', precio: 18000 },
+        { nombre: 'Bolsas de papel', categoria: 'Packaging', unidad: 'un', precio: 35 },
+        { nombre: 'Cajas de torta', categoria: 'Packaging', unidad: 'un', precio: 650 },
+    ],
+    promos: [
+        { nombre: 'Desayuno: café + medialuna', precio: 2490, productos: [['Café americano', 1], ['Medialuna', 1]] },
+        { nombre: 'Café + trozo de torta', precio: 4290, productos: [['Café americano', 1], ['Trozo de torta', 1]] },
+        { nombre: 'Once: marraqueta + 4 medialunas', precio: 5990, productos: [['Marraqueta', 1], ['Medialuna', 4]] },
+    ],
+    proveedores: [
+        { nombre: 'Molino San Cristóbal', contacto: 'Jorge Pérez', telefono: '+56 9 5555 1201' },
+        { nombre: 'Lácteos del Sur', contacto: 'Carolina Muñoz', telefono: '+56 9 5555 1202' },
+        { nombre: 'Café Altura', contacto: 'Matías Rojas', telefono: '+56 9 5555 1203' },
+        { nombre: 'Envases Pacífico', contacto: 'Daniela Soto', telefono: '+56 9 5555 1204' },
+    ],
+}

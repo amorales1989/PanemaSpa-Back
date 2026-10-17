@@ -32,4 +32,17 @@ router.patch('/empresas/:id/estado', idValido,
 router.patch('/empresas/:id/suscripcion', idValido, validar(esquemaSuscripcion), adminControlador.guardarSuscripcion)
 router.use('/empresas/:id/usuarios', idValido, adminUsuariosRutas)
 
+// Demos para mostrarle la app a posibles clientes
+const generacion = {
+    dias: z.number().int().min(7).max(365).default(180),
+    ventasDia: z.number().int().min(5).max(300).default(30),
+}
+router.post('/demos', validar(z.object({
+    nombre: z.string().trim().min(2).max(100),
+    catalogo: z.boolean().default(true),   // catálogo de ejemplo y movimientos generados
+    ...generacion,
+})), adminControlador.crearDemo)
+router.post('/empresas/:id/demo/regenerar', idValido, validar(z.object(generacion)), adminControlador.regenerarDemo)
+router.delete('/empresas/:id/demo', idValido, adminControlador.eliminarDemo)
+
 export default router
