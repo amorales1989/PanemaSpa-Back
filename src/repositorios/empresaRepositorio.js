@@ -1,3 +1,4 @@
+import { armarSet } from '../utilidades/sql.js'
 import { slugificar } from '../utilidades/texto.js'
 
 export const slugExiste = async (db, slug) => {
@@ -49,6 +50,8 @@ export const crearSuscripcionPrueba = (db, empresaId, dias = 14) =>
 export const listarDeUsuario = async (db, usuarioId) => {
     const { rows } = await db.query(
         `select e.id, e.nombre, e.slug, e.moneda, e.decimales, e.zona_horaria, e.logo_url, e.estado,
+                -- Datos que van en el comprobante de venta impreso
+                e.razon_social, e.rut, e.direccion, e.telefono, e.comprobante_activo, e.comprobante_formato, e.comprobante_pie,
                 r.codigo as rol_codigo, r.nombre as rol_nombre,
                 -- modo_propio: empresa con plan interno (ej. Fundador) que usa el sistema como su
                 -- desarrollo propio. El front no muestra nada de planes, pruebas ni pagos.
@@ -71,18 +74,24 @@ export const listarDeUsuario = async (db, usuarioId) => {
 }
 
 // Datos que el dueño puede ver y editar de su empresa (nunca plan ni suscripción)
-const DATOS_EMPRESA = 'id, nombre, razon_social, rut, slug, moneda, zona_horaria, logo_url'
+const DATOS_EMPRESA = `id, nombre, razon_social, rut, slug, moneda, zona_horaria, logo_url,
+    direccion, telefono, comprobante_activo, comprobante_formato, comprobante_pie`
+
+const CAMPOS = {
+    nombre: 'nombre', razonSocial: 'razon_social', rut: 'rut', direccion: 'direccion', telefono: 'telefono',
+    comprobanteActivo: 'comprobante_activo', comprobanteFormato: 'comprobante_formato', comprobantePie: 'comprobante_pie',
+}
 
 export const datos = async (db, id) =>
     (await db.query(`select ${DATOS_EMPRESA} from empresas where id = $1 and deleted_at is null`, [id])).rows[0] ?? null
 
-export const actualizarDatos = async (db, id, { nombre, razonSocial, rut }) =>
-    (await db.query(
-        `update empresas set nombre = coalesce($2, nombre),
-                razon_social = case when $3::boolean then $4 else razon_social end,
-                rut = case when $5::boolean then $6 else rut end
-         where id = $1 and deleted_at is null returning ${DATOS_EMPRESA}`,
-        [id, nombre ?? null, razonSocial !== undefined, razonSocial ?? null, rut !== undefined, rut ?? null],
+// Solo cambia los campos presentes en `cambios`
+export async function actualizarDatos(db, id, cambios) {
+    const { set, valores } = armarSet(cambios, CAMPOS, 2)
+    if (!set) return datos(db, id)
+    return (await db.query(
+        `update empresas set ${set} where id = $1 and deleted_at is null returning ${DATOS_EMPRESA}`, [id, ...valores],
     )).rows[0] ?? null
+}
 
 export const ponerLogo = (db, id, url) => db.query('update empresas set logo_url = $2 where id = $1', [id, url])

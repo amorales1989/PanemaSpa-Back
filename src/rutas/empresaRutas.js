@@ -14,10 +14,16 @@ import { borrarArchivo, decodificarImagen, guardarArchivo } from '../utilidades/
 const router = express.Router()
 const db = { query: consultar }
 
+// Lo que no viene no se toca; '' o null borra el valor (.optional() evita que lo ausente llegue como null)
 const esquema = z.object({
     nombre: texto(100).optional(),
-    razonSocial: textoOpcional(150),
-    rut: textoOpcional(20),
+    razonSocial: textoOpcional(150).optional(),
+    rut: textoOpcional(20).optional(),
+    direccion: textoOpcional(200).optional(),
+    telefono: textoOpcional(30).optional(),
+    comprobanteActivo: z.boolean().optional(),
+    comprobanteFormato: z.enum(['ticket', 'carta']).optional(),
+    comprobantePie: textoOpcional(200).optional(),
 }).refine((d) => Object.keys(d).length > 0, 'No hay cambios')
 
 router.get('/', async (req, res) => {
