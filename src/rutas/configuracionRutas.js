@@ -13,7 +13,8 @@ const simple = z.object({ nombre: texto(60), orden: orden.optional(), activo: z.
 
 const ESQUEMAS = {
     canales: simple,
-    'metodos-pago': simple,
+    // Descuento en ventas pagadas con este medio (0 = sin descuento)
+    'metodos-pago': simple.extend({ descuentoPct: z.coerce.number().min(0).max(99.99).optional() }),
     'motivos-merma': simple,
     categorias: simple.extend({
         ambito: z.enum(['producto', 'insumo', 'egreso']),

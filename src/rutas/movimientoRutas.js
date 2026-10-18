@@ -21,12 +21,13 @@ const esquemaVenta = z.object({
     sucursalId: uuid.optional(),
     canalId: uuid,
     metodoPagoId: uuid,
+    clienteId: uuid.nullish(),
     items: z.array(lineaVenta).min(1, 'La venta no tiene productos').max(200),
 })
 
 export const ventaRutas = express.Router()
 ventaRutas.get('/', permiso('ventas.ver', 'ventas.ver_todas'),
-    validar(filtroMovimientos.extend({ usuarioId: uuid.optional(), canalId: uuid.optional() }), 'query'), ventas.listar)
+    validar(filtroMovimientos.extend({ usuarioId: uuid.optional(), canalId: uuid.optional(), clienteId: uuid.optional() }), 'query'), ventas.listar)
 ventaRutas.post('/', permiso('ventas.crear'), validar(esquemaVenta), ventas.crear)
 ventaRutas.get('/:id', idValido, permiso('ventas.ver', 'ventas.ver_todas'), ventas.buscar)
 ventaRutas.post('/:id/anular', idValido, permiso('ventas.anular'), validar(anulacion), ventas.anular)

@@ -137,11 +137,17 @@ function generarVentas({ productos, promos, canales, metodos }, dias, hoy, minut
                 }
             }
             lineas.forEach((l, posicion) => items.push({ ...l, posicion }))
+            // Igual que una venta real: descuento del medio de pago sobre toda la venta
+            const metodo = elegir(metodos, pesosMetodo)
+            const subtotal = redondear(lineas.reduce((t, l) => t + l.subtotal, 0), dec)
+            const descuento = redondear((subtotal * metodo.descuento_pct) / 100, dec)
             ventas.push({
                 id: ventaId, fecha, minutos,
                 canal_id: elegir(canales, pesosCanal).id,
-                metodo_pago_id: elegir(metodos, pesosMetodo).id,
-                total: redondear(lineas.reduce((t, l) => t + l.subtotal, 0), dec),
+                metodo_pago_id: metodo.id,
+                total: redondear(subtotal - descuento, dec),
+                descuento_pct: metodo.descuento_pct,
+                descuento,
             })
         }
     }

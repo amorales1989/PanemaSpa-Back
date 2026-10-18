@@ -19,6 +19,7 @@ import { egresoRutas, mermaRutas, ventaRutas } from './rutas/movimientoRutas.js'
 import { equipoRutas } from './rutas/equipoRutas.js'
 import empresaRutas from './rutas/empresaRutas.js'
 import importacionRutas from './rutas/importacionRutas.js'
+import clienteRutas from './rutas/clienteRutas.js'
 import proveedorRutas from './rutas/proveedorRutas.js'
 
 export const app = express()
@@ -76,6 +77,7 @@ deEmpresa.use('/equipo', equipoRutas)
 deEmpresa.use('/empresa', empresaRutas)
 deEmpresa.use('/importar', importacionRutas)
 deEmpresa.use('/proveedores', proveedorRutas)
+deEmpresa.use('/clientes', clienteRutas)
 // Próximas fases: estadisticas
 app.use('/v1', deEmpresa)
 

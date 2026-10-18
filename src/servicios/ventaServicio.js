@@ -2,6 +2,7 @@ import { conEmpresa } from '../db/contexto.js'
 import * as ventaRepositorio from '../repositorios/ventaRepositorio.js'
 import * as productoRepositorio from '../repositorios/productoRepositorio.js'
 import * as promoRepositorio from '../repositorios/promoRepositorio.js'
+import * as clienteRepositorio from '../repositorios/clienteRepositorio.js'
 import { auditar } from '../utilidades/auditoria.js'
 import { redondear } from '../utilidades/dinero.js'
 import { datosInvalidos, noEncontrado, sinPermiso } from '../utilidades/errores.js'
@@ -74,12 +75,21 @@ export const crear = (req, datos, clave) =>
         await verificarActivo(db, 'canales_venta', datos.canalId, 'canalId')
         await verificarActivo(db, 'metodos_pago', datos.metodoPagoId, 'metodoPagoId')
 
+        if (datos.clienteId && !(await clienteRepositorio.existe(db, datos.clienteId))) {
+            throw datosInvalidos({ clienteId: ['El cliente no existe'] })
+        }
+
         const lineas = await armarLineas(db, req, datos.items, fecha)
-        const total = redondear(lineas.reduce((t, l) => t + l.subtotal, 0), req.empresa.decimales)
+        const dec = req.empresa.decimales
+        const subtotal = redondear(lineas.reduce((t, l) => t + l.subtotal, 0), dec)
+        // Descuento del medio de pago (ej. 10% con transferencia), leído del servidor, sobre toda la venta
+        const descuentoPct = await ventaRepositorio.descuentoDelMetodo(db, datos.metodoPagoId)
+        const descuento = redondear((subtotal * descuentoPct) / 100, dec)
 
         const id = await ventaRepositorio.insertarCabecera(db, {
             empresaId: req.contexto.empresaId, sucursalId, fecha, canalId: datos.canalId,
-            metodoPagoId: datos.metodoPagoId, total, usuarioId: req.usuario.id, clave,
+            metodoPagoId: datos.metodoPagoId, total: redondear(subtotal - descuento, dec), usuarioId: req.usuario.id, clave,
+            descuentoPct, descuento, clienteId: datos.clienteId ?? null,
         })
         if (!id) {
             // Otra petición con la misma Idempotency-Key se registró justo antes

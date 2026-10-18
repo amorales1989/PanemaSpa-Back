@@ -11,8 +11,8 @@ export const LISTAS = {
     },
     'metodos-pago': {
         tabla: 'metodos_pago',
-        columnas: 'id, nombre, orden, activo',
-        campos: { nombre: 'nombre', orden: 'orden', activo: 'activo' },
+        columnas: 'id, nombre, orden, activo, descuento_pct',
+        campos: { nombre: 'nombre', orden: 'orden', activo: 'activo', descuentoPct: 'descuento_pct' },
         orden: 'orden, nombre',
     },
     'motivos-merma': {

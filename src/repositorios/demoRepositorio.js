@@ -39,7 +39,7 @@ export async function contexto(db, empresaId) {
     const consultas = [
         'select id from sucursales where empresa_id = $1 and activa and deleted_at is null order by created_at',
         'select id, nombre from canales_venta where empresa_id = $1 and activo and deleted_at is null order by orden, nombre',
-        'select id, nombre from metodos_pago where empresa_id = $1 and activo and deleted_at is null order by orden, nombre',
+        'select id, nombre, descuento_pct from metodos_pago where empresa_id = $1 and activo and deleted_at is null order by orden, nombre',
         'select id, nombre from motivos_merma where empresa_id = $1 and activo and deleted_at is null order by orden, nombre',
         `select id, nombre, con_items from categorias
            where empresa_id = $1 and ambito = 'egreso' and activa and deleted_at is null order by orden, nombre`,
@@ -111,7 +111,9 @@ async function insertarCabeceras(db, tabla, columnas, filas, { empresaId, sucurs
 }
 
 export async function insertarVentas(db, base, ventas, items, componentes) {
-    await insertarCabeceras(db, 'ventas', [['canal_id', 'uuid'], ['metodo_pago_id', 'uuid'], ['total', 'numeric']], ventas, base)
+    await insertarCabeceras(db, 'ventas', [
+        ['canal_id', 'uuid'], ['metodo_pago_id', 'uuid'], ['total', 'numeric'], ['descuento_pct', 'numeric'], ['descuento', 'numeric'],
+    ], ventas, base)
     await insertarMasivo(db, 'venta_items', [
         ['id', 'uuid'], ['venta_id', 'uuid'], ['producto_id', 'uuid'], ['promo_id', 'uuid'], ['codigo', 'int'], ['nombre', 'text'],
         ['unidad', 'text'], ['cantidad', 'numeric'], ['precio_unitario', 'numeric'], ['costo_unitario', 'numeric'],

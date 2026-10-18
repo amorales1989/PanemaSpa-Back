@@ -4,6 +4,7 @@ const CABECERA = `
     select v.id, v.numero, v.fecha, v.ocurrido_en, v.total, v.estado,
            v.canal_id, cv.nombre as canal, v.metodo_pago_id, mp.nombre as metodo_pago,
            v.sucursal_id, s.nombre as sucursal, v.usuario_id, u.nombre as usuario,
+           v.descuento, v.descuento_pct, v.cliente_id, cl.nombre as cliente, cl.documento as cliente_documento,
            v.anulada_en, v.motivo_anulacion`
 
 const JOINS = `
@@ -11,7 +12,8 @@ const JOINS = `
     join canales_venta cv on cv.id = v.canal_id
     join metodos_pago mp on mp.id = v.metodo_pago_id
     join sucursales s on s.id = v.sucursal_id
-    join usuarios u on u.id = v.usuario_id`
+    join usuarios u on u.id = v.usuario_id
+    left join clientes cl on cl.id = v.cliente_id`
 
 // Líneas de la venta; las promos traen sus componentes (productos con precio prorrateado)
 const ITEMS = `
@@ -32,11 +34,13 @@ export const idPorClave = async (db, clave) => {
 // Devuelve null si otra petición con la misma clave ganó la carrera
 export async function insertarCabecera(db, v) {
     const { rows } = await db.query(
-        `insert into ventas (empresa_id, sucursal_id, numero, fecha, canal_id, metodo_pago_id, total, usuario_id, clave_idempotencia)
-         values ($1, $2, siguiente_numero($1, 'venta'), $3, $4, $5, $6, $7, $8)
+        `insert into ventas (empresa_id, sucursal_id, numero, fecha, canal_id, metodo_pago_id, total, usuario_id, clave_idempotencia,
+                             descuento_pct, descuento, cliente_id)
+         values ($1, $2, siguiente_numero($1, 'venta'), $3, $4, $5, $6, $7, $8, $9, $10, $11)
          on conflict (empresa_id, clave_idempotencia) where clave_idempotencia is not null do nothing
          returning id`,
-        [v.empresaId, v.sucursalId, v.fecha, v.canalId, v.metodoPagoId, v.total, v.usuarioId, v.clave ?? null],
+        [v.empresaId, v.sucursalId, v.fecha, v.canalId, v.metodoPagoId, v.total, v.usuarioId, v.clave ?? null,
+            v.descuentoPct ?? 0, v.descuento ?? 0, v.clienteId ?? null],
     )
     return rows[0]?.id ?? null
 }
@@ -72,7 +76,7 @@ export const listar = (db, f) =>
         alias: 'v',
         filtros: f,
         estados: ['confirmada', 'anulada'],
-        extra: [['v.usuario_id = ?', f.usuarioId], ['v.canal_id = ?', f.canalId]],
+        extra: [['v.usuario_id = ?', f.usuarioId], ['v.canal_id = ?', f.canalId], ['v.cliente_id = ?', f.clienteId]],
     })
 
 export const anular = async (db, id, usuarioId, motivo) => {
@@ -83,5 +87,8 @@ export const anular = async (db, id, usuarioId, motivo) => {
     )
     return rowCount
 }
+
+export const descuentoDelMetodo = async (db, metodoPagoId) =>
+    (await db.query('select descuento_pct from metodos_pago where id = $1', [metodoPagoId])).rows[0]?.descuento_pct ?? 0
 
 export const existe = async (db, id) => (await db.query('select 1 from ventas where id = $1', [id])).rowCount > 0
