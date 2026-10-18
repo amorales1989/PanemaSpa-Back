@@ -46,6 +46,20 @@ describe('descuento por medio de pago', () => {
     })
 })
 
+describe('canal y medio de pago por defecto', () => {
+    test('se marca uno por lista; marcar otro desmarca el anterior', async () => {
+        const marcar = (lista, id, porDefecto = true) => dueno.patch(`/config/${lista}/${id}`, { porDefecto })
+        assert.equal((await marcar('metodos-pago', metodo('Débito').id)).status, 200)
+        assert.equal((await marcar('metodos-pago', metodo('Transferencia').id)).status, 200)
+        await marcar('canales', cfg.canales[1].id)
+        const c = (await dueno.get('/config')).datos
+        assert.deepEqual(c.metodosPago.filter((m) => m.porDefecto).map((m) => m.nombre), ['Transferencia'])
+        assert.deepEqual(c.canales.filter((x) => x.porDefecto).map((x) => x.id), [cfg.canales[1].id])
+        await marcar('metodos-pago', metodo('Transferencia').id, false)
+        assert.ok(!(await dueno.get('/config')).datos.metodosPago.some((m) => m.porDefecto))
+    })
+})
+
 describe('clientes', () => {
     let juana
 

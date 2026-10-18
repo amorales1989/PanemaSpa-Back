@@ -12,9 +12,10 @@ const router = express.Router()
 const simple = z.object({ nombre: texto(60), orden: orden.optional(), activo: z.boolean().optional() })
 
 const ESQUEMAS = {
-    canales: simple,
+    // porDefecto: la caja abre la venta con este canal / medio de pago elegido
+    canales: simple.extend({ porDefecto: z.boolean().optional() }),
     // Descuento en ventas pagadas con este medio (0 = sin descuento)
-    'metodos-pago': simple.extend({ descuentoPct: z.coerce.number().min(0).max(99.99).optional() }),
+    'metodos-pago': simple.extend({ descuentoPct: z.coerce.number().min(0).max(99.99).optional(), porDefecto: z.boolean().optional() }),
     'motivos-merma': simple,
     categorias: simple.extend({
         ambito: z.enum(['producto', 'insumo', 'egreso']),

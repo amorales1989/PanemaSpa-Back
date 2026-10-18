@@ -5,14 +5,14 @@ import { armarSet } from '../utilidades/sql.js'
 export const LISTAS = {
     canales: {
         tabla: 'canales_venta',
-        columnas: 'id, nombre, orden, activo',
-        campos: { nombre: 'nombre', orden: 'orden', activo: 'activo' },
+        columnas: 'id, nombre, orden, activo, por_defecto',
+        campos: { nombre: 'nombre', orden: 'orden', activo: 'activo', porDefecto: 'por_defecto' },
         orden: 'orden, nombre',
     },
     'metodos-pago': {
         tabla: 'metodos_pago',
-        columnas: 'id, nombre, orden, activo, descuento_pct',
-        campos: { nombre: 'nombre', orden: 'orden', activo: 'activo', descuentoPct: 'descuento_pct' },
+        columnas: 'id, nombre, orden, activo, descuento_pct, por_defecto',
+        campos: { nombre: 'nombre', orden: 'orden', activo: 'activo', descuentoPct: 'descuento_pct', porDefecto: 'por_defecto' },
         orden: 'orden, nombre',
     },
     'motivos-merma': {
@@ -68,6 +68,8 @@ export const crear = async (db, lista, empresaId, entrada) => {
 
 export const actualizar = async (db, lista, id, cambios) => {
     const { tabla, columnas, campos } = LISTAS[lista]
+    // Solo una opción por defecto: al marcar esta, se desmarca la anterior
+    if (cambios.porDefecto) await db.query(`update ${tabla} set por_defecto = false where por_defecto and id <> $1`, [id])
     const { set, valores } = armarSet(cambios, campos, 2)
     if (!set) return buscar(db, lista, id)
     const { rows } = await db.query(`update ${tabla} set ${set} where id = $1 and deleted_at is null returning ${columnas}`, [id, ...valores])
