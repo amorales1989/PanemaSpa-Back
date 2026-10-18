@@ -32,10 +32,10 @@ describe('configuración del comprobante', () => {
     })
 
     test('un cambio parcial no borra los demás datos', async () => {
-        await dueno.patch('/empresa', { razonSocial: 'Comprobante SpA', rut: '76.123.456-7' })
+        await dueno.patch('/empresa', { razonSocial: 'Comprobante SpA', rut: '76.086.428-5' })
         const r = await dueno.patch('/empresa', { comprobanteFormato: 'ticket' })
         assert.equal(r.datos.razonSocial, 'Comprobante SpA')
-        assert.equal(r.datos.rut, '76.123.456-7')
+        assert.equal(r.datos.rut, '76.086.428-5')
         assert.equal(r.datos.direccion, 'Av. Siempre Viva 742')
         assert.equal(r.datos.comprobanteActivo, true)
     })

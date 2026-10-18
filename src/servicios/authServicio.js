@@ -20,16 +20,16 @@ async function emitirSesion(db, usuarioId, { userAgent, ip }) {
 }
 
 // Alta de un negocio nuevo: usuario dueño + empresa lista para usar + prueba de 14 días
-export async function registrar({ nombre, email, password, nombreEmpresa }, cliente) {
+export async function registrar({ nombre, email, password, nombreEmpresa, pais }, cliente) {
     const passwordHash = await argon2.hash(password)
     return transaccion(async (db) => {
         if (await usuarioRepositorio.buscarPorEmail(db, email)) {
             throw conflicto('EMAIL_REGISTRADO', 'Ya existe una cuenta con ese email. Inicia sesión.')
         }
         const usuario = await usuarioRepositorio.crear(db, { email, nombre, passwordHash })
-        const empresa = await empresaRepositorio.crear(db, { nombre: nombreEmpresa, slug: await empresaRepositorio.slugLibre(db, nombreEmpresa) })
+        const empresa = await empresaRepositorio.crear(db, { nombre: nombreEmpresa, slug: await empresaRepositorio.slugLibre(db, nombreEmpresa), pais })
         await empresaRepositorio.agregarMiembro(db, { empresaId: empresa.id, usuarioId: usuario.id, rolCodigo: 'dueno' })
-        await empresaRepositorio.inicializar(db, empresa.id)
+        await empresaRepositorio.inicializar(db, empresa.id, pais)
         await empresaRepositorio.crearSuscripcionPrueba(db, empresa.id)
         const tokens = await emitirSesion(db, usuario.id, cliente)
         logger.info({ usuarioId: usuario.id, empresaId: empresa.id }, 'registro de empresa')

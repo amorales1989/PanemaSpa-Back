@@ -42,11 +42,12 @@ export async function pedir(ruta, { metodo = 'GET', token, empresa, body, cookie
 
 const sufijo = Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
 
-// Crea un dueño con su empresa y devuelve un "cliente" que ya manda token y empresa
-export async function nuevaEmpresa(quien) {
+// Crea un dueño con su empresa y devuelve un "cliente" que ya manda token y empresa.
+// Por defecto chilena (los tests de RUT y cuentas son de Chile); pais: 'AR' para Argentina.
+export async function nuevaEmpresa(quien, pais = 'CL') {
     const r = await pedir('/v1/auth/registro', {
         metodo: 'POST',
-        body: { nombre: `Dueño ${quien}`, email: `${quien}-${sufijo}@test.cl`, password: 'clave-segura-123', nombreEmpresa: `Panadería ${quien}` },
+        body: { nombre: `Dueño ${quien}`, email: `${quien}-${sufijo}@test.cl`, password: 'clave-segura-123', nombreEmpresa: `Panadería ${quien}`, pais },
     })
     if (r.status !== 201) throw new Error(`registro ${quien}: ${r.status} ${JSON.stringify(r.datos)}`)
     return clienteDe(r.datos.accessToken, r.datos.empresa.id, r.datos.usuario.id)

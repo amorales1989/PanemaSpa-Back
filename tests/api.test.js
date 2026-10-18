@@ -124,7 +124,8 @@ describe('aislamiento entre empresas', () => {
         const r = await pedir('/v1/config', { token: a.datos.accessToken, empresa: a.datos.empresa.id })
         assert.equal(r.status, 200)
         assert.equal(r.datos.empresa.id, a.datos.empresa.id)
-        assert.deepEqual(r.datos.metodosPago.map((m) => m.nombre), ['Efectivo', 'Débito', 'Crédito', 'Transferencia'])
+        // Registro sin país → Argentina, que suma Mercado Pago a los medios de siempre
+        assert.deepEqual(r.datos.metodosPago.map((m) => m.nombre), ['Efectivo', 'Débito', 'Crédito', 'Transferencia', 'Mercado Pago'])
         assert.equal(r.datos.sucursales.length, 1)
         assert.equal(r.datos.categorias.egreso.find((c) => c.conItems)?.nombre, 'Insumos')
     })

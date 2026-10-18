@@ -6,6 +6,7 @@ import { superadmin } from '../middlewares/superadmin.js'
 import { idValido, validar } from '../middlewares/validar.js'
 import { fecha } from '../utilidades/esquemas.js'
 import { adminUsuariosRutas } from './equipoRutas.js'
+import { CODIGOS_PAIS, PAIS_POR_DEFECTO } from '../utilidades/paises.js'
 
 // Panel de plataforma: solo usuarios con es_superadmin. No usa X-Empresa-Id.
 const router = express.Router()
@@ -32,6 +33,15 @@ router.patch('/empresas/:id/estado', idValido,
 router.patch('/empresas/:id/suscripcion', idValido, validar(esquemaSuscripcion), adminControlador.guardarSuscripcion)
 router.use('/empresas/:id/usuarios', idValido, adminUsuariosRutas)
 
+const pais = z.enum(CODIGOS_PAIS).default(PAIS_POR_DEFECTO)
+router.post('/empresas', validar(z.object({
+    nombre: z.string().trim().min(2).max(100),
+    pais,
+    duenoNombre: z.string().trim().min(2).max(100),
+    duenoEmail: z.string().trim().toLowerCase().email('Email inválido').max(200),
+})), adminControlador.crearEmpresa)
+router.patch('/empresas/:id/pais', idValido, validar(z.object({ pais: z.enum(CODIGOS_PAIS) })), adminControlador.cambiarPais)
+
 // Demos para mostrarle la app a posibles clientes
 const generacion = {
     dias: z.number().int().min(7).max(365).default(180),
@@ -39,6 +49,7 @@ const generacion = {
 }
 router.post('/demos', validar(z.object({
     nombre: z.string().trim().min(2).max(100),
+    pais,
     catalogo: z.boolean().default(true),   // catálogo de ejemplo y movimientos generados
     ...generacion,
 })), adminControlador.crearDemo)

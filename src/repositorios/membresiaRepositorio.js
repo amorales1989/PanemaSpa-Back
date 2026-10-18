@@ -5,7 +5,7 @@ import { pool } from '../config/db.js'
 export async function buscarActiva(usuarioId, empresaId) {
     const { rows } = await pool.query(
         `select eu.id as membresia_id, eu.todas_sucursales,
-                e.id, e.nombre, e.slug, e.moneda, e.decimales, e.zona_horaria, e.estado,
+                e.id, e.nombre, e.slug, e.pais, e.moneda, e.decimales, e.zona_horaria, e.estado,
                 r.codigo as rol_codigo,
                 not coalesce((select p.publico from suscripciones s join planes p on p.id = s.plan_id
                               where s.empresa_id = e.id and s.estado in ('prueba', 'activa') limit 1), true) as modo_propio,
@@ -25,7 +25,7 @@ export async function buscarActiva(usuarioId, empresaId) {
     if (f.modo_propio) permisos.delete('suscripcion.gestionar')
     return {
         empresa: {
-            id: f.id, nombre: f.nombre, slug: f.slug, moneda: f.moneda,
+            id: f.id, nombre: f.nombre, slug: f.slug, pais: f.pais, moneda: f.moneda,
             decimales: f.decimales, zonaHoraria: f.zona_horaria, estado: f.estado,
         },
         membresia: { id: f.membresia_id, rol: f.rol_codigo, todasSucursales: f.todas_sucursales },

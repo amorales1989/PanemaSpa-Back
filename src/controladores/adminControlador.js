@@ -8,6 +8,8 @@ export const cambiarEstado = async (req, res) => res.json(await adminServicio.ca
 export const guardarSuscripcion = async (req, res) => res.json(await adminServicio.guardarSuscripcion(req, req.params.id, req.body))
 export const planes = async (req, res) => res.json(await adminServicio.planes())
 
+export const crearEmpresa = async (req, res) => res.status(201).json(await adminServicio.crearEmpresa(req, req.body))
+export const cambiarPais = async (req, res) => res.json(await adminServicio.cambiarPais(req, req.params.id, req.body.pais))
 export const crearDemo = async (req, res) => res.status(201).json(await demoServicio.crear(req, req.body))
 export const regenerarDemo = async (req, res) => res.json(await demoServicio.regenerar(req, req.params.id, req.body))
 export const eliminarDemo = async (req, res) => {

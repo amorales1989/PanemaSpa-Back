@@ -6,7 +6,8 @@ import { invalidarEmpresa } from '../middlewares/empresa.js'
 import { permiso } from '../middlewares/permiso.js'
 import { validar } from '../middlewares/validar.js'
 import { auditar } from '../utilidades/auditoria.js'
-import { noEncontrado } from '../utilidades/errores.js'
+import { datosInvalidos, noEncontrado } from '../utilidades/errores.js'
+import { PAISES, normalizarIdFiscal } from '../utilidades/paises.js'
 import { texto, textoOpcional } from '../utilidades/esquemas.js'
 import { borrarArchivo, decodificarImagen, guardarArchivo } from '../utilidades/imagenes.js'
 
@@ -33,6 +34,12 @@ router.get('/', async (req, res) => {
 })
 
 router.patch('/', permiso('configuracion.gestionar'), validar(esquema), async (req, res) => {
+    // RUT (Chile) o CUIT (Argentina): se valida el dígito verificador y se guarda con su formato
+    if (req.body.rut) {
+        const id = normalizarIdFiscal(req.empresa.pais, req.body.rut)
+        if (!id) throw datosInvalidos({ rut: [`${PAISES[req.empresa.pais].idFiscal} inválido (revisa el dígito verificador)`] })
+        req.body.rut = id
+    }
     const empresa = await empresaRepositorio.actualizarDatos(db, req.contexto.empresaId, req.body)
     if (!empresa) throw noEncontrado()
     invalidarEmpresa(req.contexto.empresaId) // el nombre nuevo aplica ya en todas las sesiones

@@ -324,19 +324,19 @@ async function generar(db, empresa, usuarioId, { dias, ventasDia }) {
 
 // ---------- Casos de uso ----------
 
-export async function crear(req, { nombre, catalogo, dias, ventasDia }) {
+export async function crear(req, { nombre, pais, catalogo, dias, ventasDia }) {
     const usuarioId = req.usuario.id
     const r = await demoRepositorio.transaccion(async (db) => {
-        const empresa = await empresaRepositorio.crear(db, { nombre, slug: await empresaRepositorio.slugLibre(db, `demo ${nombre}`), esDemo: true })
+        const empresa = await empresaRepositorio.crear(db, { nombre, slug: await empresaRepositorio.slugLibre(db, `demo ${nombre}`), esDemo: true, pais })
         // Quien la crea queda como dueño: la ve en el selector de empresas de la app
         await empresaRepositorio.agregarMiembro(db, { empresaId: empresa.id, usuarioId, rolCodigo: 'dueno' })
-        await empresaRepositorio.inicializar(db, empresa.id)
+        await empresaRepositorio.inicializar(db, empresa.id, pais)
         if (catalogo) await demoRepositorio.sembrarCatalogo(db, empresa.id, usuarioId, CATALOGO_DEMO)
         const demo = await demoRepositorio.buscarDemo(db, empresa.id)
         const resumen = catalogo ? await generar(db, demo, usuarioId, { dias, ventasDia }) : null
         return { id: empresa.id, resumen }
     })
-    await auditar(usuarioId, r.id, 'admin.demo.crear', { nombre, catalogo, dias, ventasDia }, req.ip)
+    await auditar(usuarioId, r.id, 'admin.demo.crear', { nombre, pais, catalogo, dias, ventasDia }, req.ip)
     logger.info({ empresaId: r.id, por: usuarioId }, 'demo creada')
     return r
 }

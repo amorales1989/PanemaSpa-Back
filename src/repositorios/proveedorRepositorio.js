@@ -6,7 +6,7 @@ const CAMPOS = {
     email: 'email', direccion: 'direccion', notas: 'notas', activo: 'activo',
 }
 const CAMPOS_CUENTA = {
-    banco: 'banco', tipoCuenta: 'tipo_cuenta', numero: 'numero', titular: 'titular',
+    banco: 'banco', tipoCuenta: 'tipo_cuenta', numero: 'numero', alias: 'alias', titular: 'titular',
     rutTitular: 'rut_titular', email: 'email', principal: 'principal',
 }
 
@@ -14,7 +14,7 @@ const CAMPOS_CUENTA = {
 const SELECT = `
     select p.id, p.nombre, p.rut, p.contacto, p.telefono, p.email, p.direccion, p.notas, p.activo, p.created_at,
            coalesce((select json_agg(json_build_object(
-                       'id', c.id, 'banco', c.banco, 'tipoCuenta', c.tipo_cuenta, 'numero', c.numero,
+                       'id', c.id, 'banco', c.banco, 'tipoCuenta', c.tipo_cuenta, 'numero', c.numero, 'alias', c.alias,
                        'titular', c.titular, 'rutTitular', c.rut_titular, 'email', c.email, 'principal', c.principal)
                      order by c.principal desc, c.created_at)
                      from proveedor_cuentas c where c.proveedor_id = p.id), '[]') as cuentas,

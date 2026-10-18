@@ -33,7 +33,7 @@ export async function resumen() {
 
 export async function listarEmpresas({ buscar, estado }) {
     const { rows } = await db().query(
-        `select e.id, e.nombre, e.slug, e.estado, e.moneda, e.created_at, e.es_demo,
+        `select e.id, e.nombre, e.slug, e.estado, e.pais, e.moneda, e.created_at, e.es_demo,
                 p.codigo as plan_codigo, p.nombre as plan, s.estado as suscripcion, s.prueba_hasta, s.periodo_fin,
                 coalesce(p.codigo = 'fundador', false) as fundadora,
                 (select count(*) from empresa_usuarios eu where eu.empresa_id = e.id and eu.estado = 'activo') as usuarios,
@@ -66,7 +66,7 @@ export async function listarEmpresas({ buscar, estado }) {
 
 export async function buscarEmpresa(id) {
     const { rows } = await db().query(
-        `select e.id, e.nombre, e.razon_social, e.rut, e.slug, e.estado, e.moneda, e.zona_horaria, e.created_at, e.es_demo,
+        `select e.id, e.nombre, e.razon_social, e.rut, e.slug, e.estado, e.pais, e.moneda, e.zona_horaria, e.created_at, e.es_demo,
                 (select count(*) from egresos where empresa_id = e.id and estado = 'confirmado') as egresos,
                 (select count(*) from mermas where empresa_id = e.id and estado = 'confirmada') as mermas,
                 (select min(fecha) from ventas where empresa_id = e.id) as primera_venta,
@@ -113,6 +113,10 @@ export async function planes() {
     )
     return rows
 }
+
+export const cambiarPais = async (id, pais, moneda, zonaHoraria) =>
+    (await db().query('update empresas set pais = $2, moneda = $3, zona_horaria = $4 where id = $1 and deleted_at is null',
+        [id, pais, moneda, zonaHoraria])).rowCount
 
 export const cambiarEstado = async (id, estado) =>
     (await db().query('update empresas set estado = $2 where id = $1 and deleted_at is null', [id, estado])).rowCount

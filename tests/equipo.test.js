@@ -119,7 +119,7 @@ describe('desde la app (dueño y administrador)', () => {
     })
 
     test('datos de la empresa: el dueño los edita, el vendedor no', async () => {
-        const r = await dueno.patch('/empresa', { nombre: 'Panadería Renovada', razonSocial: 'Renovada SpA', rut: '76.123.456-7' })
+        const r = await dueno.patch('/empresa', { nombre: 'Panadería Renovada', razonSocial: 'Renovada SpA', rut: '76.086.428-5' })
         assert.equal(r.status, 200)
         assert.equal(r.datos.razonSocial, 'Renovada SpA')
         const texto = JSON.stringify(r.datos).toLowerCase()

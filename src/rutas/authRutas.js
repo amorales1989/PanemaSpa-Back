@@ -5,6 +5,7 @@ import * as authControlador from '../controladores/authControlador.js'
 import { validar } from '../middlewares/validar.js'
 import { auth } from '../middlewares/auth.js'
 import { env } from '../config/env.js'
+import { CODIGOS_PAIS, PAIS_POR_DEFECTO } from '../utilidades/paises.js'
 
 const router = express.Router()
 
@@ -25,6 +26,7 @@ const esquemaRegistro = z.object({
     email,
     password: z.string().min(8, 'Mínimo 8 caracteres').max(200),
     nombreEmpresa: z.string().trim().min(2).max(100),
+    pais: z.enum(CODIGOS_PAIS).default(PAIS_POR_DEFECTO),
 })
 
 const esquemaLogin = z.object({

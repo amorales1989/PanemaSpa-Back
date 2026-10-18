@@ -1,3 +1,4 @@
+import { PAISES, PAIS_POR_DEFECTO } from '../utilidades/paises.js'
 import { armarSet } from '../utilidades/sql.js'
 import { slugificar } from '../utilidades/texto.js'
 
@@ -16,10 +17,13 @@ export async function slugLibre(db, nombre) {
     return `${base}-${Date.now().toString(36)}`
 }
 
-export const crear = async (db, { nombre, slug, esDemo = false }) => {
+// El país fija la moneda y el huso horario
+export const crear = async (db, { nombre, slug, esDemo = false, pais = PAIS_POR_DEFECTO }) => {
+    const { moneda, zonaHoraria } = PAISES[pais]
     const { rows } = await db.query(
-        'insert into empresas (nombre, slug, es_demo) values ($1, $2, $3) returning id, nombre, slug, moneda, zona_horaria',
-        [nombre, slug, esDemo],
+        `insert into empresas (nombre, slug, es_demo, pais, moneda, zona_horaria) values ($1, $2, $3, $4, $5, $6)
+         returning id, nombre, slug, pais, moneda, zona_horaria`,
+        [nombre, slug, esDemo, pais, moneda, zonaHoraria],
     )
     return rows[0]
 }
@@ -33,9 +37,15 @@ export const agregarMiembro = (db, { empresaId, usuarioId, rolCodigo, invitadoPo
 
 // Crea sucursal, canales, métodos de pago, categorías y motivos por defecto.
 // Las tablas tienen RLS, así que primero se fija la empresa en la transacción.
-export const inicializar = async (db, empresaId) => {
+export const inicializar = async (db, empresaId, pais = PAIS_POR_DEFECTO) => {
     await db.query("select set_config('app.empresa_id', $1, true)", [empresaId])
     await db.query('select inicializar_empresa($1)', [empresaId])
+    // Medios de pago habituales del país (ej. Mercado Pago en Argentina)
+    for (const nombre of PAISES[pais].metodosExtra) {
+        await db.query(
+            `insert into metodos_pago (empresa_id, nombre, orden)
+             select $1, $2, coalesce(max(orden) + 1, 0) from metodos_pago where empresa_id = $1`, [empresaId, nombre])
+    }
 }
 
 export const crearSuscripcionPrueba = (db, empresaId, dias = 14) =>
@@ -49,7 +59,7 @@ export const crearSuscripcionPrueba = (db, empresaId, dias = 14) =>
 // Empresas del usuario con su rol y permisos (para el selector de empresa del front)
 export const listarDeUsuario = async (db, usuarioId) => {
     const { rows } = await db.query(
-        `select e.id, e.nombre, e.slug, e.moneda, e.decimales, e.zona_horaria, e.logo_url, e.estado,
+        `select e.id, e.nombre, e.slug, e.pais, e.moneda, e.decimales, e.zona_horaria, e.logo_url, e.estado,
                 -- Datos que van en el comprobante de venta impreso
                 e.razon_social, e.rut, e.direccion, e.telefono, e.comprobante_activo, e.comprobante_formato, e.comprobante_pie,
                 r.codigo as rol_codigo, r.nombre as rol_nombre,
@@ -74,7 +84,7 @@ export const listarDeUsuario = async (db, usuarioId) => {
 }
 
 // Datos que el dueño puede ver y editar de su empresa (nunca plan ni suscripción)
-const DATOS_EMPRESA = `id, nombre, razon_social, rut, slug, moneda, zona_horaria, logo_url,
+const DATOS_EMPRESA = `id, nombre, razon_social, rut, slug, pais, moneda, zona_horaria, logo_url,
     direccion, telefono, comprobante_activo, comprobante_formato, comprobante_pie`
 
 const CAMPOS = {
