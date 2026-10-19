@@ -90,6 +90,25 @@ describe('control de stock', () => {
         assert.equal((await dueno.post('/stock/ajustes', { items: [{ productoId: ids.bebida, modo: 'reposicion', cantidad: 0 }] })).status, 400)
     })
 
+    test('ingreso de stock con costo nuevo y precio de venta trasladado', async () => {
+        const r = await dueno.post('/stock/ingresos', {
+            motivo: 'Pedido 123',
+            items: [
+                { productoId: ids.bebida, cantidad: 12, costo: 660, precio: 1320 },
+                { insumoId: ids.harina, cantidad: 3, costo: 1100 },
+            ],
+        })
+        assert.equal(r.status, 200, JSON.stringify(r.datos))
+        const b = (await dueno.get(`/productos/${ids.bebida}`)).datos
+        assert.deepEqual([b.stock, b.costo, b.precio], [32, 660, 1320])
+        const h = (await dueno.get(`/productos/${ids.bebida}/historial-precios`)).datos
+        assert.equal(h[0].motivo, 'Ingreso de stock: Pedido 123')
+        const harina = (await dueno.get(`/insumos/${ids.harina}`)).datos
+        assert.deepEqual([harina.stock, harina.precio], [5, 1100])
+        assert.equal((await dueno.get(`/productos/${ids.pan}`)).datos.costo, 110) // la receta toma el precio nuevo
+        assert.equal((await dueno.post('/stock/ingresos', { items: [{ insumoId: ids.harina, cantidad: 1, precio: 5 }] })).status, 400)
+    })
+
     test('el mínimo se puede quitar', async () => {
         const r = await dueno.patch(`/insumos/${ids.harina}`, { stockMinimo: null })
         assert.equal(r.datos.stockMinimo, null)

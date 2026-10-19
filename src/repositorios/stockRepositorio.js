@@ -29,6 +29,21 @@ export async function stockActual(db, tabla, ids) {
     return new Map(rows.map((r) => [r.id, r]))
 }
 
+// Costo nuevo de lo que ingresa: en productos (sin receta) el costo; en insumos el último precio de compra
+export const ponerCostoProducto = (db, id, costo) =>
+    db.query('update productos set costo = $2 where id = $1 and deleted_at is null', [id, costo])
+
+export const ponerPrecioInsumo = (db, id, precio) =>
+    db.query(
+        `update insumos set precio_ultimo = $2, precio_actualizado_en = (now() at time zone e.zona_horaria)::date
+         from empresas e where insumos.id = $1 and insumos.deleted_at is null and e.id = insumos.empresa_id`,
+        [id, precio],
+    )
+
+// El trigger anota el cambio en el historial de precios con el motivo de la transacción
+export const ponerPrecioVenta = (db, id, precio) =>
+    db.query('update productos set precio_venta = $2 where id = $1 and deleted_at is null', [id, precio])
+
 export const movimientos = async (db, { productoId, insumoId, limite = 50 }) => {
     const { rows } = await db.query(
         `select m.id, m.cantidad, m.origen, m.referencia_id, m.anulacion, m.motivo, m.created_at, u.nombre as usuario
