@@ -4,6 +4,7 @@ import { armarSet } from '../utilidades/sql.js'
 // `receta`: insumos que lleva una unidad (o un kilo) del producto; el precio del insumo solo con costos.
 const columnas = (conCosto) => `p.id, p.codigo, p.nombre, p.categoria_id, c.nombre as categoria, p.unidad,
     p.precio_venta as precio, ${conCosto ? 'p.costo,' : ''} p.imagen_url, p.activo, p.created_at, p.updated_at,
+    p.stock, p.stock_minimo,
     coalesce((select json_agg(json_build_object(
                 'insumoId', i.id, 'codigo', i.codigo, 'nombre', i.nombre, 'unidad', i.unidad, 'cantidad', pi.cantidad
                 ${conCosto ? ", 'precio', i.precio_ultimo" : ''}) order by i.codigo)
@@ -12,7 +13,7 @@ const columnas = (conCosto) => `p.id, p.codigo, p.nombre, p.categoria_id, c.nomb
 
 const CAMPOS = {
     codigo: 'codigo', nombre: 'nombre', categoriaId: 'categoria_id', unidad: 'unidad',
-    precio: 'precio_venta', costo: 'costo', activo: 'activo',
+    precio: 'precio_venta', costo: 'costo', activo: 'activo', stockMinimo: 'stock_minimo',
 }
 
 export const listar = async (db, { conCosto, incluirInactivos }) => {
@@ -35,9 +36,9 @@ export const buscar = async (db, id, conCosto) => {
 
 export const crear = async (db, empresaId, d) => {
     const { rows } = await db.query(
-        `insert into productos (empresa_id, codigo, nombre, categoria_id, unidad, precio_venta, costo, activo, created_by)
-         values ($1, $2, $3, $4, $5, $6, $7, $8, $9) returning id`,
-        [empresaId, d.codigo, d.nombre, d.categoriaId ?? null, d.unidad, d.precio, d.costo ?? 0, d.activo ?? true, d.creadoPor],
+        `insert into productos (empresa_id, codigo, nombre, categoria_id, unidad, precio_venta, costo, activo, created_by, stock_minimo)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) returning id`,
+        [empresaId, d.codigo, d.nombre, d.categoriaId ?? null, d.unidad, d.precio, d.costo ?? 0, d.activo ?? true, d.creadoPor, d.stockMinimo ?? null],
     )
     return rows[0].id
 }

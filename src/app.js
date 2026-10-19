@@ -21,6 +21,7 @@ import empresaRutas from './rutas/empresaRutas.js'
 import importacionRutas from './rutas/importacionRutas.js'
 import clienteRutas from './rutas/clienteRutas.js'
 import proveedorRutas from './rutas/proveedorRutas.js'
+import stockRutas from './rutas/stockRutas.js'
 
 export const app = express()
 
@@ -73,6 +74,7 @@ deEmpresa.use('/promos', promoRutas)
 deEmpresa.use('/ventas', ventaRutas)
 deEmpresa.use('/egresos', egresoRutas)
 deEmpresa.use('/mermas', mermaRutas)
+deEmpresa.use('/stock', stockRutas)
 deEmpresa.use('/equipo', equipoRutas)
 deEmpresa.use('/empresa', empresaRutas)
 deEmpresa.use('/importar', importacionRutas)

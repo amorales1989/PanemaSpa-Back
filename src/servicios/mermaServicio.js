@@ -1,4 +1,5 @@
 import { conEmpresa } from '../db/contexto.js'
+import * as stockRepositorio from '../repositorios/stockRepositorio.js'
 import * as mermaRepositorio from '../repositorios/mermaRepositorio.js'
 import * as productoRepositorio from '../repositorios/productoRepositorio.js'
 import * as insumoRepositorio from '../repositorios/insumoRepositorio.js'
@@ -45,6 +46,7 @@ export const crear = (req, datos, clave) =>
         })
         if (!id) return { merma: await mermaRepositorio.buscar(db, await mermaRepositorio.idPorClave(db, clave)), repetida: true }
         await mermaRepositorio.insertarItems(db, req.contexto.empresaId, id, lineas)
+        await stockRepositorio.registrar(db, 'merma', id)
         return { merma: await mermaRepositorio.buscar(db, id), repetida: false }
     })
 
@@ -61,6 +63,7 @@ export const anular = (req, id, motivo) =>
     conEmpresa(req.contexto, async (db) => {
         const filas = await mermaRepositorio.anular(db, id, req.usuario.id, motivo)
         await verificarAnulacion(filas, () => mermaRepositorio.existe(db, id))
+        await stockRepositorio.revertir(db, id)
         await auditar(db, req, { accion: 'merma.anular', entidad: 'merma', entidadId: id, datos: { motivo } })
         return mermaRepositorio.buscar(db, id)
     })

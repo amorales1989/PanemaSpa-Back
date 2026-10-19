@@ -1,4 +1,5 @@
 import { conEmpresa } from '../db/contexto.js'
+import * as stockRepositorio from '../repositorios/stockRepositorio.js'
 import * as egresoRepositorio from '../repositorios/egresoRepositorio.js'
 import * as insumoRepositorio from '../repositorios/insumoRepositorio.js'
 import * as configuracionRepositorio from '../repositorios/configuracionRepositorio.js'
@@ -61,6 +62,7 @@ export const crear = (req, datos, clave) =>
         })
         if (!id) return { egreso: await egresoRepositorio.buscar(db, await egresoRepositorio.idPorClave(db, clave)), repetido: true }
         if (lineas.length) await egresoRepositorio.insertarItems(db, req.contexto.empresaId, id, lineas)
+        if (lineas.length) await stockRepositorio.registrar(db, 'compra', id)
         return { egreso: await egresoRepositorio.buscar(db, id), repetido: false }
     })
 
@@ -78,6 +80,7 @@ export const anular = (req, id, motivo) =>
     conEmpresa(req.contexto, async (db) => {
         const filas = await egresoRepositorio.anular(db, id, req.usuario.id, motivo)
         await verificarAnulacion(filas, () => egresoRepositorio.existe(db, id))
+        await stockRepositorio.revertir(db, id)
         await auditar(db, req, { accion: 'egreso.anular', entidad: 'egreso', entidadId: id, datos: { motivo } })
         return egresoRepositorio.buscar(db, id)
     })

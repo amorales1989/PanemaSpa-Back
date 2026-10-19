@@ -3,7 +3,7 @@ import { z } from 'zod'
 import * as productoControlador from '../controladores/productoControlador.js'
 import { permiso } from '../middlewares/permiso.js'
 import { idValido, validar } from '../middlewares/validar.js'
-import { cantidad, codigo, dinero, filtroLista, texto, unidad, uuid } from '../utilidades/esquemas.js'
+import { cantidad, codigo, dinero, filtroLista, stockMinimo, texto, unidad, uuid } from '../utilidades/esquemas.js'
 
 const router = express.Router()
 
@@ -16,6 +16,7 @@ const esquema = z.object({
     precio: dinero,
     costo: dinero.optional(),
     activo: z.boolean().optional(),
+    stockMinimo: stockMinimo.optional(),   // null = sin aviso de reposición
     // Insumos que lleva una unidad (o un kilo) del producto. Con receta, el costo se calcula solo.
     receta: z.array(z.object({ insumoId: uuid, cantidad })).max(100).optional(),
 })

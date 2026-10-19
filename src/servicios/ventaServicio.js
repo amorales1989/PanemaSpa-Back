@@ -1,4 +1,5 @@
 import { conEmpresa } from '../db/contexto.js'
+import * as stockRepositorio from '../repositorios/stockRepositorio.js'
 import * as ventaRepositorio from '../repositorios/ventaRepositorio.js'
 import * as productoRepositorio from '../repositorios/productoRepositorio.js'
 import * as promoRepositorio from '../repositorios/promoRepositorio.js'
@@ -96,6 +97,7 @@ export const crear = (req, datos, clave) =>
             return { venta: await ventaRepositorio.buscar(db, await ventaRepositorio.idPorClave(db, clave)), repetida: true }
         }
         await ventaRepositorio.insertarItems(db, req.contexto.empresaId, id, lineas)
+        await stockRepositorio.registrar(db, 'venta', id)
         return { venta: await ventaRepositorio.buscar(db, id), repetida: false }
     })
 
@@ -118,6 +120,7 @@ export const anular = (req, id, motivo) =>
     conEmpresa(req.contexto, async (db) => {
         const filas = await ventaRepositorio.anular(db, id, req.usuario.id, motivo)
         await verificarAnulacion(filas, () => ventaRepositorio.existe(db, id))
+        await stockRepositorio.revertir(db, id)
         await auditar(db, req, { accion: 'venta.anular', entidad: 'venta', entidadId: id, datos: { motivo } })
         return ventaRepositorio.buscar(db, id)
     })

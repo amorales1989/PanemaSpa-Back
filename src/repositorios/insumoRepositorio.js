@@ -2,11 +2,12 @@ import { armarSet } from '../utilidades/sql.js'
 
 // `precio` en la API = precio_ultimo (último precio de compra; lo actualiza cada compra)
 const COLUMNAS = `i.id, i.codigo, i.nombre, i.categoria_id, c.nombre as categoria, i.unidad,
-    i.precio_ultimo as precio, i.precio_actualizado_en, i.activo, i.created_at, i.updated_at`
+    i.precio_ultimo as precio, i.precio_actualizado_en, i.activo, i.created_at, i.updated_at,
+    i.stock, i.stock_minimo`
 
 const CAMPOS = {
     codigo: 'codigo', nombre: 'nombre', categoriaId: 'categoria_id', unidad: 'unidad',
-    precio: 'precio_ultimo', activo: 'activo',
+    precio: 'precio_ultimo', activo: 'activo', stockMinimo: 'stock_minimo',
 }
 
 export const listar = async (db, { incluirInactivos }) => {
@@ -29,9 +30,9 @@ export const buscar = async (db, id) => {
 
 export const crear = async (db, empresaId, d) => {
     const { rows } = await db.query(
-        `insert into insumos (empresa_id, codigo, nombre, categoria_id, unidad, precio_ultimo, activo)
-         values ($1, $2, $3, $4, $5, $6, $7) returning id`,
-        [empresaId, d.codigo, d.nombre, d.categoriaId ?? null, d.unidad, d.precio ?? 0, d.activo ?? true],
+        `insert into insumos (empresa_id, codigo, nombre, categoria_id, unidad, precio_ultimo, activo, stock_minimo)
+         values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+        [empresaId, d.codigo, d.nombre, d.categoriaId ?? null, d.unidad, d.precio ?? 0, d.activo ?? true, d.stockMinimo ?? null],
     )
     return rows[0].id
 }

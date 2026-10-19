@@ -12,6 +12,8 @@ export const dinero = z.coerce.number().min(0, 'No puede ser negativo').max(100_
 export const cantidad = z.coerce.number().max(1_000_000)
     .transform((v) => Math.round(v * 1000) / 1000)
     .refine((v) => v > 0, 'Debe ser mayor a 0')
+// Mínimo de stock para avisar que hay que reponer; null lo quita
+export const stockMinimo = z.coerce.number().min(0).max(1_000_000).transform((v) => Math.round(v * 1000) / 1000).nullable()
 export const unidad = z.enum(['un', 'kg', 'lt'])
 export const codigo = z.coerce.number().int().min(1).max(999_999)
 export const fecha = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato AAAA-MM-DD')

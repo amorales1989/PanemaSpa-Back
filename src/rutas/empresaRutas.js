@@ -25,6 +25,7 @@ const esquema = z.object({
     comprobanteActivo: z.boolean().optional(),
     comprobanteFormato: z.enum(['ticket', 'carta']).optional(),
     comprobantePie: textoOpcional(200).optional(),
+    controlStock: z.boolean().optional(),
 }).refine((d) => Object.keys(d).length > 0, 'No hay cambios')
 
 router.get('/', async (req, res) => {

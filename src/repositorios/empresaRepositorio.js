@@ -61,7 +61,7 @@ export const listarDeUsuario = async (db, usuarioId) => {
     const { rows } = await db.query(
         `select e.id, e.nombre, e.slug, e.pais, e.moneda, e.decimales, e.zona_horaria, e.logo_url, e.estado,
                 -- Datos que van en el comprobante de venta impreso
-                e.razon_social, e.rut, e.direccion, e.telefono, e.comprobante_activo, e.comprobante_formato, e.comprobante_pie,
+                e.razon_social, e.rut, e.direccion, e.telefono, e.comprobante_activo, e.comprobante_formato, e.comprobante_pie, e.control_stock,
                 r.codigo as rol_codigo, r.nombre as rol_nombre,
                 -- modo_propio: empresa con plan interno (ej. Fundador) que usa el sistema como su
                 -- desarrollo propio. El front no muestra nada de planes, pruebas ni pagos.
@@ -85,11 +85,12 @@ export const listarDeUsuario = async (db, usuarioId) => {
 
 // Datos que el dueño puede ver y editar de su empresa (nunca plan ni suscripción)
 const DATOS_EMPRESA = `id, nombre, razon_social, rut, slug, pais, moneda, zona_horaria, logo_url,
-    direccion, telefono, comprobante_activo, comprobante_formato, comprobante_pie`
+    direccion, telefono, comprobante_activo, comprobante_formato, comprobante_pie, control_stock`
 
 const CAMPOS = {
     nombre: 'nombre', razonSocial: 'razon_social', rut: 'rut', direccion: 'direccion', telefono: 'telefono',
     comprobanteActivo: 'comprobante_activo', comprobanteFormato: 'comprobante_formato', comprobantePie: 'comprobante_pie',
+    controlStock: 'control_stock',
 }
 
 export const datos = async (db, id) =>

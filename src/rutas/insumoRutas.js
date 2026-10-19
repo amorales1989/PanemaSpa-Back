@@ -3,7 +3,7 @@ import { z } from 'zod'
 import * as insumoControlador from '../controladores/insumoControlador.js'
 import { permiso } from '../middlewares/permiso.js'
 import { idValido, validar } from '../middlewares/validar.js'
-import { codigo, dinero, filtroLista, texto, unidad, uuid } from '../utilidades/esquemas.js'
+import { codigo, dinero, filtroLista, stockMinimo, texto, unidad, uuid } from '../utilidades/esquemas.js'
 
 const router = express.Router()
 
@@ -15,6 +15,7 @@ const esquema = z.object({
     unidad,
     precio: dinero.optional(),           // precio de referencia; después lo actualizan las compras
     activo: z.boolean().optional(),
+    stockMinimo: stockMinimo.optional(),   // null = sin aviso de reposición
 })
 
 const ver = permiso('insumos.ver')
