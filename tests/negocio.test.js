@@ -344,6 +344,58 @@ describe('egresos', () => {
     })
 })
 
+describe('recetas', () => {
+    const insumos = () => de(cfg.categorias.egreso, 'Insumos').id
+    const transferencia = () => de(cfg.metodosPago, 'Transferencia').id
+
+    test('producto con receta: el costo sale de los insumos', async () => {
+        ids.manteca = (await dueno.post('/insumos', { nombre: 'Manteca', unidad: 'kg', precio: 6000 })).datos.id
+        const r = await dueno.post('/productos', {
+            nombre: 'Pan amasado', unidad: 'un', precio: 400, costo: 999,
+            receta: [{ insumoId: ids.manteca, cantidad: 0.02 }, { insumoId: ids.huevos, cantidad: 1 }],
+        })
+        assert.equal(r.status, 201, JSON.stringify(r.datos))
+        assert.equal(r.datos.costo, 0.02 * 6000 + 190)
+        assert.deepEqual(r.datos.receta.map((x) => [x.nombre, x.cantidad]), [['Huevos', 1], ['Manteca', 0.02]])
+        ids.amasado = r.datos.id
+    })
+
+    test('el vendedor ve la receta sin precios', async () => {
+        const p = (await vendedor.get(`/productos/${ids.amasado}`)).datos
+        assert.equal(p.costo, undefined)
+        assert.equal(p.receta.length, 2)
+        assert.equal(p.receta[0].precio, undefined)
+    })
+
+    test('una compra que cambia el precio del insumo recalcula el costo', async () => {
+        await dueno.post('/egresos', {
+            categoriaId: insumos(), metodoPagoId: transferencia(), proveedor: 'Molinera del Sur',
+            items: [{ insumoId: ids.manteca, cantidad: 10, precio: 6500 }],
+        })
+        assert.equal((await dueno.get(`/productos/${ids.amasado}`)).datos.costo, 0.02 * 6500 + 190)
+    })
+
+    test('insumo repetido o de otra empresa → 400; insumo en receta no se elimina', async () => {
+        assert.equal((await dueno.patch(`/productos/${ids.amasado}`, {
+            receta: [{ insumoId: ids.manteca, cantidad: 1 }, { insumoId: ids.manteca, cantidad: 2 }],
+        })).status, 400)
+        assert.equal((await otra.post('/productos', {
+            nombre: 'Robo', unidad: 'un', precio: 1, receta: [{ insumoId: ids.manteca, cantidad: 1 }],
+        })).status, 400)
+        const r = await dueno.del(`/insumos/${ids.manteca}`)
+        assert.equal(r.status, 409)
+        assert.equal(r.datos.codigo, 'INSUMO_EN_RECETA')
+    })
+
+    test('sin receta, el costo vuelve a ser manual', async () => {
+        const r = await dueno.patch(`/productos/${ids.amasado}`, { receta: [], costo: 120 })
+        assert.equal(r.datos.costo, 120)
+        assert.equal(r.datos.receta.length, 0)
+        await dueno.del(`/productos/${ids.amasado}`)
+        await dueno.del(`/insumos/${ids.manteca}`)
+    })
+})
+
 describe('mermas', () => {
     test('merma valorizada a costo (producto) y a último precio (insumo)', async () => {
         const vencido = de(cfg.motivosMerma, 'Vencido').id

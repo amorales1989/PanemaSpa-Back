@@ -71,3 +71,13 @@ export const porIds = async (db, ids) => {
     )
     return new Map(rows.map((r) => [r.id, r]))
 }
+
+// Nombres de los productos vigentes que llevan el insumo en su receta
+export const productosQueLoUsan = async (db, id) => {
+    const { rows } = await db.query(
+        `select p.nombre from producto_insumos pi join productos p on p.id = pi.producto_id
+         where pi.insumo_id = $1 and p.deleted_at is null order by p.nombre`,
+        [id],
+    )
+    return rows.map((r) => r.nombre)
+}

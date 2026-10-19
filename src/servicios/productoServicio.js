@@ -2,6 +2,7 @@ import { conEmpresa } from '../db/contexto.js'
 import { borrarArchivo, decodificarImagen, guardarArchivo } from '../utilidades/imagenes.js'
 import * as productoRepositorio from '../repositorios/productoRepositorio.js'
 import * as catalogoRepositorio from '../repositorios/catalogoRepositorio.js'
+import * as insumoRepositorio from '../repositorios/insumoRepositorio.js'
 import { auditar } from '../utilidades/auditoria.js'
 import { conflicto, datosInvalidos, noEncontrado } from '../utilidades/errores.js'
 import { tiene } from '../middlewares/permiso.js'
@@ -31,6 +32,25 @@ const sinCostoSiNoCorresponde = (req, datos) => {
     return resto
 }
 
+// Los insumos de la receta tienen que existir, estar activos y no repetirse
+async function validarReceta(db, receta) {
+    const ids = receta.map((r) => r.insumoId)
+    if (new Set(ids).size !== ids.length) throw datosInvalidos({ receta: ['Hay un insumo repetido en la receta'] })
+    const insumos = await insumoRepositorio.porIds(db, ids)
+    const falta = ids.find((id) => !insumos.get(id)?.activo)
+    if (falta) throw datosInvalidos({ receta: ['Uno de los insumos de la receta no existe o está inactivo'] })
+}
+
+// Guarda la receta (si vino) y deja el costo calculado de los insumos cuando la hay
+async function guardarReceta(db, req, id, receta) {
+    if (receta) {
+        await validarReceta(db, receta)
+        await productoRepositorio.reemplazarReceta(db, req.contexto.empresaId, id, receta)
+    } else {
+        await db.query('select recalcular_costo_receta($1::uuid[])', [[id]])
+    }
+}
+
 export const listar = (req, filtros) =>
     conEmpresa(req.contexto, (db) => productoRepositorio.listar(db, { conCosto: verCostos(req), ...filtros }))
 
@@ -46,22 +66,24 @@ export const siguienteCodigo = (req) =>
 
 export const crear = (req, entrada) =>
     conEmpresa(req.contexto, async (db) => {
-        const datos = await resolverCategoria(db, req, entrada)
+        const { receta, ...datos } = await resolverCategoria(db, req, entrada)
         const id = await productoRepositorio.crear(db, req.contexto.empresaId, {
             ...sinCostoSiNoCorresponde(req, datos),
             codigo: datos.codigo ?? (await catalogoRepositorio.siguienteCodigo(db, 'productos')),
             creadoPor: req.usuario.id,
         })
+        await guardarReceta(db, req, id, receta)
         return productoRepositorio.buscar(db, id, verCostos(req))
     })
 
 export const actualizar = (req, id, entrada) =>
     conEmpresa(req.contexto, async (db) => {
-        const cambios = await resolverCategoria(db, req, entrada)
+        const { receta, ...cambios } = await resolverCategoria(db, req, entrada)
         // El trigger anota el cambio de precio en el historial con este motivo
         await db.query("select set_config('app.motivo_precio', 'Edición', true)")
         const filas = await productoRepositorio.actualizar(db, id, sinCostoSiNoCorresponde(req, cambios))
         if (!filas) throw noEncontrado('Producto no encontrado')
+        await guardarReceta(db, req, id, receta)
         return productoRepositorio.buscar(db, id, verCostos(req))
     })
 

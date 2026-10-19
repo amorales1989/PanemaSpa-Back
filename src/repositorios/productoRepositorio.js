@@ -1,8 +1,14 @@
 import { armarSet } from '../utilidades/sql.js'
 
 // `precio` en la API = precio_venta. El costo solo sale si se pide (permiso productos.ver_costos).
+// `receta`: insumos que lleva una unidad (o un kilo) del producto; el precio del insumo solo con costos.
 const columnas = (conCosto) => `p.id, p.codigo, p.nombre, p.categoria_id, c.nombre as categoria, p.unidad,
-    p.precio_venta as precio, ${conCosto ? 'p.costo,' : ''} p.imagen_url, p.activo, p.created_at, p.updated_at`
+    p.precio_venta as precio, ${conCosto ? 'p.costo,' : ''} p.imagen_url, p.activo, p.created_at, p.updated_at,
+    coalesce((select json_agg(json_build_object(
+                'insumoId', i.id, 'codigo', i.codigo, 'nombre', i.nombre, 'unidad', i.unidad, 'cantidad', pi.cantidad
+                ${conCosto ? ", 'precio', i.precio_ultimo" : ''}) order by i.codigo)
+              from producto_insumos pi join insumos i on i.id = pi.insumo_id
+              where pi.producto_id = p.id), '[]') as receta`
 
 const CAMPOS = {
     codigo: 'codigo', nombre: 'nombre', categoriaId: 'categoria_id', unidad: 'unidad',
@@ -79,6 +85,18 @@ export const ajustarPrecios = async (db, cambios) => {
         [cambios.map((c) => c.id), cambios.map((c) => c.precio)],
     )
     return rows.map((r) => r.id)
+}
+
+// Reemplaza la receta completa y recalcula el costo si quedó con insumos
+export async function reemplazarReceta(db, empresaId, productoId, receta) {
+    await db.query('delete from producto_insumos where producto_id = $1', [productoId])
+    if (!receta.length) return
+    await db.query(
+        `insert into producto_insumos (empresa_id, producto_id, insumo_id, cantidad)
+         select $1, $2, x.insumo_id, x.cantidad from unnest($3::uuid[], $4::numeric[]) as x(insumo_id, cantidad)`,
+        [empresaId, productoId, receta.map((r) => r.insumoId), receta.map((r) => r.cantidad)],
+    )
+    await db.query('select recalcular_costo_receta($1::uuid[])', [[productoId]])
 }
 
 export const ponerImagen = (db, id, url) =>

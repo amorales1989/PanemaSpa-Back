@@ -2,7 +2,7 @@ import { conEmpresa } from '../db/contexto.js'
 import * as insumoRepositorio from '../repositorios/insumoRepositorio.js'
 import * as catalogoRepositorio from '../repositorios/catalogoRepositorio.js'
 import { auditar } from '../utilidades/auditoria.js'
-import { datosInvalidos, noEncontrado } from '../utilidades/errores.js'
+import { conflicto, datosInvalidos, noEncontrado } from '../utilidades/errores.js'
 
 // Acepta categoriaId o el nombre de la categoría (`categoria`), que se crea si no existe
 async function resolverCategoria(db, req, datos) {
@@ -51,6 +51,10 @@ export const actualizar = (req, id, entrada) =>
 
 export const eliminar = (req, id) =>
     conEmpresa(req.contexto, async (db) => {
+        const productos = await insumoRepositorio.productosQueLoUsan(db, id)
+        if (productos.length) {
+            throw conflicto('INSUMO_EN_RECETA', `Lo usan en la receta de: ${productos.join(', ')}. Quítalo de ellas primero.`)
+        }
         if (!(await insumoRepositorio.eliminar(db, id))) throw noEncontrado('Insumo no encontrado')
         await auditar(db, req, { accion: 'insumo.eliminar', entidad: 'insumo', entidadId: id })
     })
